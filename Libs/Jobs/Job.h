@@ -15,8 +15,9 @@ struct JobCounterPtr
 {
 	JobCounterPtr() : m_counter(nullptr), m_index(-1) { }
 	JobCounterPtr(JobCounter& counter, int index, int thread) : m_counter(&counter), m_index(index), m_parentThread(thread) { }
-
 	bool IsValid() const { return m_counter != nullptr && m_index >= 0; }
+	/** Returns the JobCounter. Make sure it is valid before calling this. */
+	JobCounter& Get() { return *m_counter; }
 
 	/** Pointer to the counter */
 	JobCounter* m_counter;
@@ -35,7 +36,7 @@ struct Job
 	/** Optional pointer to counter that must be zero before this job is executed */
 	JobCounterPtr m_waitCounter;
 	/** Pointer to job data */
-	void* m_data;
+	void* m_data = nullptr;
 	// TODO: Pad to cache line?
 };
 
@@ -46,6 +47,9 @@ struct JobPtr
 	JobPtr(Job& job, int index, int thread) : m_job(&job), m_index(index), m_parentThread(thread) { }
 
 	inline bool IsValid() const { return m_job != nullptr && m_index >= 0; }
+
+	/** Returns the Job. Make sure it is valid before calling this. */
+	Job& Get() { return *m_job; }
 
 	/** Pointer to the job itself */
 	Job* m_job = nullptr;
