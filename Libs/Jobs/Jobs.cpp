@@ -1,5 +1,8 @@
 #include "Jobs.h"
 #include <iostream>
+#include <cstdio>
+
+#define LOG(msg, ...) //std::printf(msg, __VA_ARGS__); std::printf("\n");
 
 thread_local std::array<Job, Jobs::MAX_JOBS_PER_THREAD> Jobs::m_jobs;
 std::vector<std::array<bool, Jobs::MAX_JOBS_PER_THREAD>> Jobs::m_jobInUse;	// per-thread, accessed from other threads
@@ -15,7 +18,9 @@ std::vector<JobStack> Jobs::m_mainThreadJobQueues;
 // Threads
 std::vector<std::thread> Jobs::m_threads;
 thread_local int Jobs::m_thisThreadIndex;
+thread_local Job* Jobs::m_activeJob;
 bool Jobs::m_running = true;
+Job Jobs::m_nullJob;
 
 Jobs::Jobs(JobFunc mainJob, void* mainJobData)
 {
@@ -62,41 +67,13 @@ void Jobs::Init(int numThreads, JobFunc mainJob, void* mainJobData)
 void Jobs::WorkerThread(int threadIndex)
 {
 	m_thisThreadIndex = threadIndex;
+	m_activeJob = &m_nullJob;
 	std::cout << "Initialising thread " << m_thisThreadIndex << std::endl;
 
 	while (m_running)
 	{
 		JobPtr jobPtr = GetJob();
-		if (jobPtr.IsValid())
-		{
-			Job& job = jobPtr.Get();
-			Execute(job);
-
-			// Decrement dependency counter
-			if (job.m_decCounter.IsValid())
-			{
-				int numJobs = --job.m_decCounter.Get().m_numJobs;
-			}
-
-			// Decrement dependent counter
-			JobCounterPtr& dependantsCounter = job.m_waitCounter;
-			if (dependantsCounter.IsValid())
-			{
-				--dependantsCounter.m_counter->m_numDependants;
-				if (dependantsCounter.m_counter->m_numDependants == 0)
-				{
-					DeallocateCounter(job.m_waitCounter);
-				}
-			}
-
-			// Free job
-			DeallocateJob(jobPtr);
-		}
-		else
-		{
-			// Didn't get a job - yield for a bit
-			_YIELD_PROCESSOR();
-		}
+		ExecuteOuter(jobPtr);
 	}
 
 	// This thread has completed
@@ -106,6 +83,7 @@ void Jobs::WorkerThread(int threadIndex)
 void Jobs::MainThread(int threadIndex, JobFunc mainJob, void* mainJobData)
 {
 	m_thisThreadIndex = threadIndex;
+	m_activeJob = &m_nullJob;
 	std::cout << "Initialising thread " << m_thisThreadIndex << std::endl;
 
 	// The main thread may have an initial job
@@ -123,22 +101,41 @@ void Jobs::MainThread(int threadIndex, JobFunc mainJob, void* mainJobData)
 			// No main thread jobs to run, so fall back to regular job
 			jobPtr = GetJob();
 		}
+		ExecuteOuter(jobPtr);
+	}
 
-		if (jobPtr.IsValid())
+	// This thread has completed
+	std::cout << "Thread " << threadIndex << " complete" << std::endl;
+}
+
+void Jobs::ExecuteOuter(JobPtr& jobPtr)
+{
+	if (jobPtr.IsValid())
+	{
+		Job& job = jobPtr.Get();
+		Execute(job);
+
+		if (job.IsComplete())
 		{
-			Job& job = jobPtr.Get();
-			Execute(job);
+			// Decrement parent's children counter
+			if (job.m_parent)
+			{
+				LOG("MT: Decremented parent counter on job %d", jobPtr.m_index);
+				job.m_parent->m_children--;
+			}
 
 			// Decrement dependency counter
 			if (job.m_decCounter.IsValid())
 			{
-				int numJobs = --job.m_decCounter.Get().m_numJobs;
+				_ASSERT(job.m_decCounter.Get().m_numJobs > 0);
+				job.m_decCounter.Get().m_numJobs--;
 			}
 
 			// Decrement dependent counter
 			JobCounterPtr& dependantsCounter = job.m_waitCounter;
 			if (dependantsCounter.IsValid())
 			{
+				_ASSERT(job.m_waitCounter.Get().m_numDependants > 0);
 				--dependantsCounter.m_counter->m_numDependants;
 				if (dependantsCounter.m_counter->m_numDependants == 0)
 				{
@@ -151,54 +148,53 @@ void Jobs::MainThread(int threadIndex, JobFunc mainJob, void* mainJobData)
 		}
 		else
 		{
-			// Didn't get a job - yield for a bit
-			_YIELD_PROCESSOR();
+			// Job is incomplete (because it has children). Push it back to the queue to check again later.
+			m_jobQueues[m_thisThreadIndex].Push(jobPtr);
 		}
 	}
-
-	// This thread has completed
-	std::cout << "Thread " << threadIndex << " complete" << std::endl;
+	else
+	{
+		// Didn't get a job - yield for a bit
+		_YIELD_PROCESSOR();
+	}
 }
 
-void Jobs::Execute(const Job& job)
+void Jobs::Execute(Job& job)
 {
-	// TODO: thread_local pointer to job, so that any Create requests within this execution can inherit the caller's decCounter
-	job.m_func(job.m_data);
+	if (job.m_func)
+	{
+		m_activeJob = &job;
+		job.m_func(job.m_data);
+		// Set func to nullptr so we can't run it again (the job will persist if it has children that have not yet finished)
+		job.m_func = nullptr;
+	}
 }
 
-void Jobs::CreateJob(JobFunc func, void* data)
+void Jobs::CreateJob(JobFunc func, void* data, bool asChild)
 {
-	JobPtr jobPtr = AllocateJob();
-	jobPtr.m_job->m_func = func;
-	jobPtr.m_job->m_data = data;
+	JobPtr jobPtr = AllocateJob(func, data, asChild);
 	m_jobQueues[m_thisThreadIndex].Push(jobPtr);
 }
 
-void Jobs::CreateJobWithDependency(JobFunc func, void* data, JobCounterPtr& dependencyCounter)
+void Jobs::CreateJobWithDependency(JobFunc func, void* data, JobCounterPtr& dependencyCounter, bool asChild)
 {
-	JobPtr jobPtr = AllocateJob();
-	jobPtr.m_job->m_func = func;
-	jobPtr.m_job->m_data = data;
+	JobPtr jobPtr = AllocateJob(func, data, asChild);
 	jobPtr.m_job->m_waitCounter = dependencyCounter;
 	++(dependencyCounter.m_counter->m_numDependants);
 	m_jobQueues[m_thisThreadIndex].Push(jobPtr);
 }
 
-void Jobs::CreateJobAndCount(JobFunc func, void* data, JobCounterPtr& jobCounter)
+void Jobs::CreateJobAndCount(JobFunc func, void* data, JobCounterPtr& jobCounter, bool asChild)
 {
-	JobPtr jobPtr = AllocateJob();
-	jobPtr.m_job->m_func = func;
-	jobPtr.m_job->m_data = data;
+	JobPtr jobPtr = AllocateJob(func, data, asChild);
 	jobPtr.m_job->m_decCounter = jobCounter;
 	++(jobCounter.m_counter->m_numJobs);
 	m_jobQueues[m_thisThreadIndex].Push(jobPtr);
 }
 
-void Jobs::CreateJobWithDependencyAndCount(JobFunc func, void* data, JobCounterPtr& dependencyCounter, JobCounterPtr& jobCounter)
+void Jobs::CreateJobWithDependencyAndCount(JobFunc func, void* data, JobCounterPtr& dependencyCounter, JobCounterPtr& jobCounter, bool asChild)
 {
-	JobPtr jobPtr = AllocateJob();
-	jobPtr.m_job->m_func = func;
-	jobPtr.m_job->m_data = data;
+	JobPtr jobPtr = AllocateJob(func, data, asChild);
 	jobPtr.m_job->m_waitCounter = dependencyCounter;
 	jobPtr.m_job->m_decCounter = jobCounter;
 	++(jobCounter.m_counter->m_numJobs);
@@ -206,39 +202,31 @@ void Jobs::CreateJobWithDependencyAndCount(JobFunc func, void* data, JobCounterP
 	m_jobQueues[m_thisThreadIndex].Push(jobPtr);
 }
 
-void Jobs::CreateJobOnMainThread(JobFunc func, void* data)
+void Jobs::CreateJobOnMainThread(JobFunc func, void* data, bool asChild)
 {
-	JobPtr jobPtr = AllocateJob();
-	jobPtr.m_job->m_func = func;
-	jobPtr.m_job->m_data = data;
+	JobPtr jobPtr = AllocateJob(func, data, asChild);
 	m_mainThreadJobQueues[m_thisThreadIndex].Push(jobPtr);
 }
 
-void Jobs::CreateJobOnMainThreadWithDependency(JobFunc func, void* data, JobCounterPtr& dependencyCounter)
+void Jobs::CreateJobOnMainThreadWithDependency(JobFunc func, void* data, JobCounterPtr& dependencyCounter, bool asChild)
 {
-	JobPtr jobPtr = AllocateJob();
-	jobPtr.m_job->m_func = func;
-	jobPtr.m_job->m_data = data;
+	JobPtr jobPtr = AllocateJob(func, data, asChild);
 	jobPtr.m_job->m_waitCounter = dependencyCounter;
 	++(dependencyCounter.m_counter->m_numDependants);
 	m_mainThreadJobQueues[m_thisThreadIndex].Push(jobPtr);
 }
 
-void Jobs::CreateJobOnMainThreadAndCount(JobFunc func, void* data, JobCounterPtr& jobCounter)
+void Jobs::CreateJobOnMainThreadAndCount(JobFunc func, void* data, JobCounterPtr& jobCounter, bool asChild)
 {
-	JobPtr jobPtr = AllocateJob();
-	jobPtr.m_job->m_func = func;
-	jobPtr.m_job->m_data = data;
+	JobPtr jobPtr = AllocateJob(func, data, asChild);
 	jobPtr.m_job->m_decCounter = jobCounter;
 	++(jobCounter.m_counter->m_numJobs);
 	m_mainThreadJobQueues[m_thisThreadIndex].Push(jobPtr);
 }
 
-void Jobs::CreateJobOnMainThreadWithDependencyAndCount(JobFunc func, void* data, JobCounterPtr& dependencyCounter, JobCounterPtr& jobCounter)
+void Jobs::CreateJobOnMainThreadWithDependencyAndCount(JobFunc func, void* data, JobCounterPtr& dependencyCounter, JobCounterPtr& jobCounter, bool asChild)
 {
-	JobPtr jobPtr = AllocateJob();
-	jobPtr.m_job->m_func = func;
-	jobPtr.m_job->m_data = data;
+	JobPtr jobPtr = AllocateJob(func, data, asChild);
 	jobPtr.m_job->m_waitCounter = dependencyCounter;
 	jobPtr.m_job->m_decCounter = jobCounter;
 	++(jobCounter.m_counter->m_numJobs);
@@ -246,7 +234,7 @@ void Jobs::CreateJobOnMainThreadWithDependencyAndCount(JobFunc func, void* data,
 	m_mainThreadJobQueues[m_thisThreadIndex].Push(jobPtr);
 }
 
-JobPtr Jobs::AllocateJob()
+JobPtr Jobs::AllocateJob(JobFunc func, void* data, bool asChild)
 {
 	// Search the job ring-buffer to find the first available job
 	m_jobBufferHead = (m_jobBufferHead + 1) & MAX_JOBS_PER_THREAD_MASK;
@@ -262,13 +250,30 @@ JobPtr Jobs::AllocateJob()
 		//}
 	}
 	m_jobInUse[m_thisThreadIndex][m_jobBufferHead] = true;
-	return JobPtr(m_jobs[m_jobBufferHead], m_jobBufferHead, m_thisThreadIndex);
+	JobPtr job(m_jobs[m_jobBufferHead], m_jobBufferHead, m_thisThreadIndex);
+
+	// Set up new job
+	job.Get().m_func = func;
+	job.Get().m_data = data;
+	// Don't track children for a job that calls itself
+	if (asChild && m_activeJob != &m_nullJob && (m_activeJob->m_func != func || m_activeJob->m_data != data))
+	{
+		m_activeJob->m_children++;
+		job.Get().m_parent = m_activeJob;
+	}
+	return job;
 }
 
-void Jobs::DeallocateJob(const JobPtr& job)
+void Jobs::DeallocateJob(JobPtr& job)
 {
+	LOG("Deallocating job %d on thread %d", job.m_index, job.m_parentThread);
 	// This should be safe - No other thread will be doing anything with this
-	m_jobInUse[job.m_parentThread][job.m_index] = false;
+	int index = job.m_index;
+	job.m_index = -1;
+	job.m_job->m_decCounter = JobCounterPtr();
+	job.m_job->m_waitCounter = JobCounterPtr();
+	_ASSERT(m_jobInUse[job.m_parentThread][index] == true);
+	m_jobInUse[job.m_parentThread][index] = false;
 }
 
 JobPtr Jobs::GetJob()
@@ -298,9 +303,9 @@ JobPtr Jobs::GetJobInner(std::vector<JobStack>& queues)
 			std::array<JobPtr, MAX_JOBS_PER_THREAD> deferredJobs;
 			int numDeferredJobs = 0;
 			job = jobQueue.Pop();
-			while (job.IsValid() && job.Get().m_waitCounter.IsValid() && job.Get().m_waitCounter.m_counter->m_numJobs > 0)
+			while (job.IsValid() && (job.HasDependencies() || job.HasChildren()))
 			{
-				// Job still has dependencies - Put it aside and pick the next job
+				// Job is still waiting for dependencies, or has children that need to run - Put it aside and pick the next job
 				deferredJobs[numDeferredJobs] = job;
 				numDeferredJobs++;
 				job = jobQueue.Pop();
@@ -308,13 +313,19 @@ JobPtr Jobs::GetJobInner(std::vector<JobStack>& queues)
 			// Push jobs with dependencies back on queue
 			for (int i = 0; i < numDeferredJobs; ++i)
 			{
-				jobQueue.Push(deferredJobs[i]);
+				queues[m_thisThreadIndex].Push(deferredJobs[i]);
 			}
 		}
 		else
 		{
 			// Can only try to steal one job from other threads since Pop/Push cannot be called on them
 			job = jobQueue.Steal();
+			if (job.IsValid() && (job.HasDependencies() || job.HasChildren()))
+			{
+				// Job is still waiting for dependencies or has children that need to run - Put it back (on this thread now)
+				queues[m_thisThreadIndex].Push(job);
+				job = JobPtr();
+			}
 		}
 
 		// Check next thread
@@ -340,18 +351,25 @@ JobCounterPtr Jobs::AllocateCounter()
 		if (m_counterBufferHead == start)
 		{
 			// ERROR: Counter buffer is full
+			_ASSERT(false);
 			return JobCounterPtr();
 		}
 	}
 	// Reset the counter
 	m_counters[m_counterBufferHead].m_numJobs = 0;
 	m_counters[m_counterBufferHead].m_numDependants = 0;
+	// Assert to soft-check that this is thread-safe
+	_ASSERT(m_counterInUse[m_thisThreadIndex][m_counterBufferHead] == false);
 	m_counterInUse[m_thisThreadIndex][m_counterBufferHead] = true;
 	return JobCounterPtr(m_counters[m_counterBufferHead], m_counterBufferHead, m_thisThreadIndex);
 }
 
 void Jobs::DeallocateCounter(const JobCounterPtr& counter)
 {
+	LOG("Deallocating counter %d on thread %d", counter.m_index, counter.m_parentThread);
 	// This should be safe - No other thread will be doing anything with this
+	// Assert that the counters have completed before deallocating.
+	_ASSERT(counter.m_counter->m_numDependants == 0 && counter.m_counter->m_numJobs == 0);
+	_ASSERT(m_counterInUse[counter.m_parentThread][counter.m_index] == true);
 	m_counterInUse[counter.m_parentThread][counter.m_index] = false;
 }

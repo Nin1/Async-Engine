@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -118,13 +118,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Projects\Programming\SDKs\glm-0.9.9.6;C:\Projects\Programming\SDKs\glfw-3.3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExternalLibs\GLM;$(SolutionDir)ExternalLibs\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Projects\Programming\SDKs\glfw-3.3\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)ExternalLibs\GLFW\lib-vc2019;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;User32.lib;Gdi32.lib;Shell32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -135,27 +135,46 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Projects\Programming\SDKs\glm-0.9.9.6;C:\Projects\Programming\SDKs\glfw-3.3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExternalLibs\GLM;$(SolutionDir)ExternalLibs\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Projects\Programming\SDKs\glfw-3.3\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)ExternalLibs\GLFW\lib-vc2019;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;User32.lib;Gdi32.lib;Shell32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\Libs\Jobs\Job.h" />
+    <ClInclude Include="..\Libs\Jobs\JobDecl.h" />
     <ClInclude Include="..\Libs\Jobs\Jobs.h" />
     <ClInclude Include="..\Libs\Jobs\JobStack.h" />
+    <ClInclude Include="Assert.h" />
+    <ClInclude Include="FrameData.h" />
+    <ClInclude Include="FramePipeline.h" />
+    <ClInclude Include="FrameStageRunner.h" />
+    <ClInclude Include="FrameStartRunner.h" />
     <ClInclude Include="GameApp.h" />
+    <ClInclude Include="GameLogicRunner.h" />
+    <ClInclude Include="GPUExecutionRunner.h" />
+    <ClInclude Include="RenderLogicRunner.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="SimpleRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Libs\Jobs\Jobs.cpp" />
+    <ClCompile Include="FrameData.cpp" />
+    <ClCompile Include="FrameStageRunner.cpp" />
+    <ClCompile Include="FrameStartRunner.cpp" />
     <ClCompile Include="GameApp.cpp" />
+    <ClCompile Include="GameLogicRunner.cpp" />
+    <ClCompile Include="GPUExecutionRunner.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="RenderLogicRunner.cpp" />
+    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="SimpleRenderer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

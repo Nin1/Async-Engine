@@ -1,20 +1,33 @@
 #pragma once
-#include <GLFW/glfw3.h>
+#include "FrameData.h"
+#include "FramePipeline.h"
+#include "Scene.h"
+#include "SimpleRenderer.h"
+#include <Jobs/JobDecl.h>
 
 class GameApp
 {
 public:
+
 	void Start();
+
+	static void StartNewFrame();
 
 private:
 	// Jobs
-	static void InitialiseWindowJob(void* app) { static_cast<GameApp*>(app)->InitialiseWindow(); }
-	static void MainLoopJob(void* app) { static_cast<GameApp*>(app)->MainLoop(); }
-
-	void InitialiseWindow();
-	void MainLoop();
+	// Initialise systems
+	DECLARE_CLASS_JOB(GameApp, Init);
+	// Start processing frames
+	DECLARE_CLASS_JOB(GameApp, StartMainLoop);
 
 private:
+	Scene m_scene;
+	SimpleRenderer m_renderer;
+	FramePipeline m_pipeline;
+
+	// TODO: Singleton
 	GLFWwindow* m_window;
+
+	std::vector<FrameData> m_frames;
 };
 

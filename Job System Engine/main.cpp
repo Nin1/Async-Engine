@@ -11,10 +11,12 @@
 */
 
 
-void StartApp(void* app)
+
+JOB_FUNCTION_START(StartApp, GameApp, app)
 {
-	static_cast<GameApp*>(app)->Start();
+	app->Start();
 }
+JOB_FUNCTION_END()
 
 int main()
 {

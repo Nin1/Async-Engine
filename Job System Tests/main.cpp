@@ -74,7 +74,7 @@ int main()
 	// Single-thread test
 	std::cout << "Starting single-thread test" << std::endl;
 	auto start = std::chrono::system_clock::now();
-	Jobs singleThreadTest(1, Test1a);
+	Jobs singleThreadTest(1, Test1a, nullptr);
 	auto end = std::chrono::system_clock::now();
 	auto elapsed = end - start;
 	std::cout << "Single-thread test completed in " << elapsed.count() << "ns" << std::endl;
@@ -82,7 +82,7 @@ int main()
 	// Multi-thread test
 	std::cout << "Starting multi-thread test" << std::endl;
 	start = std::chrono::system_clock::now();
-	Jobs multiThreadTest(Test1a);
+	Jobs multiThreadTest(Test1a, nullptr);
 	end = std::chrono::system_clock::now();
 	elapsed = end - start;
 	std::cout << "Multi-thread test completed in " << elapsed.count() << "ns" << std::endl;
@@ -90,7 +90,7 @@ int main()
 	// Nested jobs test
 	std::cout << "Starting nested job test" << std::endl;
 	start = std::chrono::system_clock::now();
-	Jobs nestedJobTest(Test2a);
+	Jobs nestedJobTest(Test2a, nullptr);
 	end = std::chrono::system_clock::now();
 	elapsed = end - start;
 	std::cout << "nested job test completed in " << elapsed.count() << "ns" << std::endl;

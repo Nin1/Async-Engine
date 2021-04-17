@@ -27,16 +27,24 @@ struct JobCounterPtr
 	int m_parentThread = -1;
 };
 
+struct JobPtr;
+
 struct Job
 {
 	/** Function pointer for execution */
 	JobFunc m_func;
+	/** Pointer to parent job */
+	Job* m_parent = nullptr;
 	/** Optional pointer to counter that will be decremented when the job completes */
 	JobCounterPtr m_decCounter;
 	/** Optional pointer to counter that must be zero before this job is executed */
 	JobCounterPtr m_waitCounter;
 	/** Pointer to job data */
 	void* m_data = nullptr;
+	/** Count of the number of children this job has created that haven't yet finished. */
+	std::atomic<int> m_children = 0;
+	/** Returns true if this job has completed */
+	inline bool IsComplete() const { return m_func == nullptr && m_children.load() == 0; }
 	// TODO: Pad to cache line?
 };
 
@@ -47,6 +55,8 @@ struct JobPtr
 	JobPtr(Job& job, int index, int thread) : m_job(&job), m_index(index), m_parentThread(thread) { }
 
 	inline bool IsValid() const { return m_job != nullptr && m_index >= 0; }
+	inline bool HasDependencies() const { return m_job && m_job->m_waitCounter.IsValid() && m_job->m_waitCounter.m_counter->m_numJobs > 0; }
+	inline bool HasChildren() const { return m_job && m_job->m_children > 0; }
 
 	/** Returns the Job. Make sure it is valid before calling this. */
 	Job& Get() { return *m_job; }
