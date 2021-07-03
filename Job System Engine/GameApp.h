@@ -1,8 +1,8 @@
 #pragma once
-#include "FrameData.h"
-#include "FramePipeline.h"
+#include "Pipeline/FramePipeline.h"
+#include "Input.h"
 #include "Scene.h"
-#include "SimpleRenderer.h"
+#include "Pipeline/FrameData.h"
 #include <Jobs/JobDecl.h>
 
 class GameApp
@@ -13,6 +13,11 @@ public:
 
 	static void StartNewFrame();
 
+	/** Forwarders for GLFW callback functions */
+	void InputKeyListener(GLFWwindow* window, int key, int scancode, int action, int mods) { m_input.KeyListener(window, key, scancode, action, mods); }
+	void InputMouseButtonListener(GLFWwindow* window, int key, int action, int mods) { m_input.MouseButtonListener(window, key, action, mods); }
+	void InputMousePosListener(GLFWwindow* window, double xpos, double ypos) { m_input.MousePosListener(window, xpos, ypos); }
+
 private:
 	// Jobs
 	// Initialise systems
@@ -21,8 +26,8 @@ private:
 	DECLARE_CLASS_JOB(GameApp, StartMainLoop);
 
 private:
+	Input m_input;
 	Scene m_scene;
-	SimpleRenderer m_renderer;
 	FramePipeline m_pipeline;
 
 	// TODO: Singleton

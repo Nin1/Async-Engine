@@ -1,6 +1,7 @@
 #include "FrameStartRunner.h"
 #include "FrameData.h"
-#include "Assert.h"
+#include "../Assert.h"
+#include "../Input.h"
 #include <GLFW/glfw3.h>
 #include <iostream>
 
@@ -13,11 +14,12 @@ void FrameStartRunner::RunJobInner(JobCounterPtr& jobCounter)
 	//std::cout << "Starting frame " << m_frameData->m_frameNumber << std::endl;
 
 	// glfw events must be run on the main thread, so do that here
-	Jobs::CreateJobOnMainThreadAndCount(FrameStartRunner::MainThreadTasks, this, jobCounter);
+	Jobs::CreateJobAndCount(FrameStartRunner::MainThreadTasks, this, JOBFLAG_MAINTHREAD, jobCounter);
 }
 
 DEFINE_CLASS_JOB(FrameStartRunner, MainThreadTasks)
 {
+	m_frameData->m_inputHandler.RefreshInputs();
 	glfwPollEvents();
 	if (glfwWindowShouldClose(m_frameData->m_window))
 	{
@@ -28,6 +30,7 @@ DEFINE_CLASS_JOB(FrameStartRunner, MainThreadTasks)
 	}
 	else
 	{
-		//std::cout << "Frame start: Executing " << m_frameData->m_frameNumber << std::endl;
+		// Capture input state at the start of this frame
+		m_frameData->m_input = m_frameData->m_inputHandler.ExtractInputState();
 	}
 }

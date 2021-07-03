@@ -28,7 +28,7 @@ void Test1a(void* data)
 	JobCounterPtr counter = Jobs::GetNewJobCounter();
 	for (int i = 0; i < NUM_JOBS_SINGLETHREADTEST; i++)
 	{
-		Jobs::CreateJobAndCount(Test1b, nullptr, counter);
+		Jobs::CreateJobAndCount(Test1b, nullptr, JOBFLAG_NONE, counter);
 	}
 }
 
@@ -54,7 +54,7 @@ void Test2b(void* data)
 {
 	for (int i = 0; i < NUM_JOBS_NEST_B; i++)
 	{
-		Jobs::CreateJob(Test2c, nullptr);
+		Jobs::CreateJob(Test2c, nullptr, JOBFLAG_NONE);
 	}
 }
 
@@ -65,7 +65,7 @@ void Test2a(void* data)
 	JobCounterPtr counter = Jobs::GetNewJobCounter();
 	for (int i = 0; i < NUM_JOBS_NEST_A; i++)
 	{
-		Jobs::CreateJobAndCount(Test2b, nullptr, counter);
+		Jobs::CreateJobAndCount(Test2b, nullptr, JOBFLAG_NONE, counter);
 	}
 }
 

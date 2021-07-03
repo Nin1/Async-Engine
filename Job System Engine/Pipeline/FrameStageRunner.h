@@ -6,12 +6,16 @@
 
 struct FrameData;
 
+/** Base class for pipeline stages. A frame can be queued here and processed in order before being sent to the next stage. */
 class FrameStageRunner
 {
 public:
-	static constexpr int SIMULTANEOUS_FRAMES = 15;
+	static constexpr int SIMULTANEOUS_FRAMES = 4;
 
 	FrameStageRunner(const char* name);
+
+	/** Overridable initialisation that runs on app start-up */
+	virtual void Init() { }
 
 	/** Sets the stage runner that frames are sent to after this stage. Only set once on initialisation. */
 	void SetNextStage(FrameStageRunner* nextStage) { m_nextStage = nextStage; }
@@ -71,8 +75,10 @@ private:
 	void StartFrame(FrameData& frame);
 	/** Calls the overridable RunJobInner, and creates the FinishFrame job for when the stage has finished */
 	void RunJob(JobCounterPtr& jobFinished);
+	/** The first job called when processing a frame */
+	DECLARE_CLASS_JOB(FrameStageRunner, StartFrameJob);
 	/** Runs just after a frame has finished processing, to reset m_thisFrame and attempt to start the next frame. */
-	DECLARE_CLASS_JOB(FrameStageRunner, FinishFrame);
+	DECLARE_CLASS_JOB(FrameStageRunner, FinishFrameJob);
 
 	/** Thread-safe enqueues a frame into the lock-free linkedlist */
 	void EnqueueFrame(FrameData& frame);
@@ -89,6 +95,8 @@ protected:
 
 	/** Quick accessor for the currently active frame data */
 	FrameData* m_frameData = nullptr;
+	/** Job counter for the running frame - Only valid while a frame is processing */
+	JobCounterPtr m_jobCounter;
 
 private:
 	/** Lock-free concurrent queue of frames to run */

@@ -116,15 +116,16 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);GLEW_STATIC</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ExternalLibs\GLM;$(SolutionDir)ExternalLibs\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExternalLibs\Vulkan\Include;$(SolutionDir)ExternalLibs\GLM;$(SolutionDir)ExternalLibs\GLFW\include;$(SolutionDir)ExternalLibs\GLEW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)ExternalLibs\GLFW\lib-vc2019;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;User32.lib;Gdi32.lib;Shell32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)ExternalLibs\Vulkan\Lib;$(SolutionDir)ExternalLibs\GLFW\lib-vc2019;$(SolutionDir)ExternalLibs\GLEW\lib\Release\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glew32s.lib;glfw3.lib;User32.lib;Gdi32.lib;Shell32.lib;opengl32.lib;vulkan-1.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -133,17 +134,18 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);GLEW_STATIC</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ExternalLibs\GLM;$(SolutionDir)ExternalLibs\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExternalLibs\Vulkan\Include;$(SolutionDir)ExternalLibs\GLM;$(SolutionDir)ExternalLibs\GLFW\include;$(SolutionDir)ExternalLibs\GLEW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)ExternalLibs\GLFW\lib-vc2019;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;User32.lib;Gdi32.lib;Shell32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)ExternalLibs\Vulkan\Lib;$(SolutionDir)ExternalLibs\GLFW\lib-vc2019;$(SolutionDir)ExternalLibs\GLEW\lib\Release\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glew32s.lib;glfw3.lib;User32.lib;Gdi32.lib;Shell32.lib;opengl32.lib;vulkan-1.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -152,29 +154,50 @@
     <ClInclude Include="..\Libs\Jobs\Jobs.h" />
     <ClInclude Include="..\Libs\Jobs\JobStack.h" />
     <ClInclude Include="Assert.h" />
-    <ClInclude Include="FrameData.h" />
-    <ClInclude Include="FramePipeline.h" />
-    <ClInclude Include="FrameStageRunner.h" />
-    <ClInclude Include="FrameStartRunner.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="CameraData.h" />
+    <ClInclude Include="CellModel.h" />
+    <ClInclude Include="CellShape.h" />
     <ClInclude Include="GameApp.h" />
-    <ClInclude Include="GameLogicRunner.h" />
-    <ClInclude Include="GPUExecutionRunner.h" />
-    <ClInclude Include="RenderLogicRunner.h" />
+    <ClInclude Include="GraphicsAsset.h" />
+    <ClInclude Include="Input.h" />
+    <ClInclude Include="Mesh.h" />
+    <ClInclude Include="ModelToRender.h" />
+    <ClInclude Include="Pipeline\FrameData.h" />
+    <ClInclude Include="Pipeline\FramePipeline.h" />
+    <ClInclude Include="Pipeline\FrameStageRunner.h" />
+    <ClInclude Include="Pipeline\FrameStartRunner.h" />
+    <ClInclude Include="Pipeline\GameLogicRunner.h" />
+    <ClInclude Include="Pipeline\GPUExecutionRunner.h" />
+    <ClInclude Include="Pipeline\RenderLogicRunner.h" />
+    <ClInclude Include="ModelAsset.h" />
     <ClInclude Include="Scene.h" />
+    <ClInclude Include="ShaderLoader.h" />
+    <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="SimpleRenderer.h" />
+    <ClInclude Include="Transform.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Libs\Jobs\Jobs.cpp" />
-    <ClCompile Include="FrameData.cpp" />
-    <ClCompile Include="FrameStageRunner.cpp" />
-    <ClCompile Include="FrameStartRunner.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CellModel.cpp" />
     <ClCompile Include="GameApp.cpp" />
-    <ClCompile Include="GameLogicRunner.cpp" />
-    <ClCompile Include="GPUExecutionRunner.cpp" />
+    <ClCompile Include="GraphicsAsset.cpp" />
+    <ClCompile Include="Input.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="RenderLogicRunner.cpp" />
+    <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="Pipeline\FrameData.cpp" />
+    <ClCompile Include="Pipeline\FrameStageRunner.cpp" />
+    <ClCompile Include="Pipeline\FrameStartRunner.cpp" />
+    <ClCompile Include="Pipeline\GameLogicRunner.cpp" />
+    <ClCompile Include="Pipeline\GPUExecutionRunner.cpp" />
+    <ClCompile Include="Pipeline\RenderLogicRunner.cpp" />
+    <ClCompile Include="ModelAsset.cpp" />
     <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="ShaderLoader.cpp" />
+    <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="SimpleRenderer.cpp" />
+    <ClCompile Include="Transform.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

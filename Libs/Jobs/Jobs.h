@@ -34,23 +34,15 @@ public:
 	static JobCounterPtr GetNewJobCounter() { return AllocateCounter(); }
 
 	/** Creates a job with no dependencies */
-	static void CreateJob(JobFunc func, void* data, bool asChild = false);
+	static void CreateJob(JobFunc func, void* data, uint8_t flags);
 	/** Create a job that will only be run once dependencyCounter is 0 */
-	static void CreateJobWithDependency(JobFunc func, void* data, JobCounterPtr& dependencyCounter, bool asChild = false);
+	static void CreateJobWithDependency(JobFunc func, void* data, uint8_t flags, JobCounterPtr& dependencyCounter);
 	/** Create a job that will add to jobCounter when created, and decrement it when complete */
-	static void CreateJobAndCount(JobFunc func, void* data, JobCounterPtr& jobCounter, bool asChild = false);
+	static void CreateJobAndCount(JobFunc func, void* data, uint8_t flags, JobCounterPtr& jobCounter);
 	/** Create a job that will add to jobCounter when created, and decrement it when complete, but it will only execute once dependencyCounter is 0 */
-	static void CreateJobWithDependencyAndCount(JobFunc func, void* data, JobCounterPtr& dependencyCounter, JobCounterPtr& jobCounter, bool asChild = false);
+	static void CreateJobWithDependencyAndCount(JobFunc func, void* data, uint8_t flags, JobCounterPtr& dependencyCounter, JobCounterPtr& jobCounter);
 
-
-	/** Creates a job with no dependencies on the main thread */
-	static void CreateJobOnMainThread(JobFunc func, void* data, bool asChild = false);
-	/** Create a job on the main thread that will only be run once dependencyCounter is 0 */
-	static void CreateJobOnMainThreadWithDependency(JobFunc func, void* data, JobCounterPtr& dependencyCounter, bool asChild = false);
-	/** Create a job on the main thread that will add to jobCounter when created, and decrement it when complete */
-	static void CreateJobOnMainThreadAndCount(JobFunc func, void* data, JobCounterPtr& jobCounter, bool asChild = false);
-	/** Create a job on the main thread that will add to jobCounter when created, and decrement it when complete, but it will only execute once dependencyCounter is 0 */
-	static void CreateJobOnMainThreadWithDependencyAndCount(JobFunc func, void* data, JobCounterPtr& dependencyCounter, JobCounterPtr& jobCounter, bool asChild = false);
+	static void PushJob(JobPtr&& jobPtr, bool mainThread);
 
 	// These probably need fibers to store and restore stacks and function pointers
 	/** Creates a counter used for pausing a job until its current job is complete */
@@ -68,10 +60,10 @@ private:
 	/** Main method for the main thread */
 	static void MainThread(int threadIndex, JobFunc mainJob, void* mainJobData);
 	/** Outer method for job execution */
-	static void ExecuteOuter(JobPtr& jobPtr);
+	static void ExecuteOuter(JobPtr&& jobPtr);
 
 	/** Returns a pointer to an available Job. May return nullptr if there is no space. */
-	static JobPtr AllocateJob(JobFunc func, void* data, bool asChild);
+	static JobPtr AllocateJob(JobFunc func, void* data, uint8_t flags);
 	/** Frees a job from the job buffer so it may be allocated again later. */
 	static void DeallocateJob(JobPtr& job);
 	/** Returns a Job to be actioned. */
@@ -123,4 +115,10 @@ private:
 	static thread_local Job* m_activeJob;
 	// Null job, used as a placeholder activeJob to avoid some branches
 	static Job m_nullJob;
+
+	// Boolean that a thread can attempt to take for executing disk read jobs
+	static thread_local bool m_thisThreadCanReadDisk;
+	static char m_diskJobInProgress;
+	static constexpr char CHAR_TRUE = 1;
+	static constexpr char CHAR_FALSE = 0;
 };

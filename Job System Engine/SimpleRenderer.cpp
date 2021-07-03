@@ -2,7 +2,6 @@
 
 void SimpleRenderer::Init()
 {
-	// Nothing to do here really
 }
 
 void SimpleRenderer::PrepareRenderData(FrameData& frameData)

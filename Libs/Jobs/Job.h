@@ -3,6 +3,15 @@
 
 typedef void(*JobFunc)(void*);
 
+/** Job property bitflags */
+enum JobFlag
+{
+	JOBFLAG_NONE = 0,
+	JOBFLAG_MAINTHREAD = 1 << 0,
+	JOBFLAG_DISKACCESS = 1 << 1,
+	JOBFLAG_ISCHILD = 1 << 2,
+};
+
 /** Counter for handling job dependencies */
 struct JobCounter
 {
@@ -41,10 +50,14 @@ struct Job
 	JobCounterPtr m_waitCounter;
 	/** Pointer to job data */
 	void* m_data = nullptr;
+	/** Bitflag properties */
+	uint8_t m_flags = 0;
 	/** Count of the number of children this job has created that haven't yet finished. */
 	std::atomic<int> m_children = 0;
 	/** Returns true if this job has completed */
 	inline bool IsComplete() const { return m_func == nullptr && m_children.load() == 0; }
+	/** Returns true if this job asked for disk reads */
+	inline bool NeedsDiskActivity() const { return (m_flags & JOBFLAG_DISKACCESS) != 0; }
 	// TODO: Pad to cache line?
 };
 

@@ -1,7 +1,11 @@
 #pragma once
-#include "FramePipeline.h"
-#include <GLFW/glfw3.h>
 #include <stdint.h>
+#include "../CameraData.h"
+#include "../ModelToRender.h"
+#include "../Input.h"
+
+struct GLFWwindow;
+struct FramePipeline;
 
 enum class FrameStage
 {
@@ -19,19 +23,26 @@ enum class FrameStage
 struct FrameData
 {
 public:
-	FrameData(int id, FramePipeline& pipeline, GLFWwindow* window)
+	FrameData(int id, FramePipeline& pipeline, GLFWwindow* window, Input& input)
 		: m_myId(id)
 		, m_pipeline(pipeline)
 		, m_window(window)
+		, m_inputHandler(input)
 	{ }
 
 	void Reset(int64_t frameNumber);
 
 public:
+	/**********
+	 META DATA
+	**********/
+
 	/** The global ID of this frame. */
 	const int m_myId;
 	/** The GLFWwindow for this application. Only access on the main thread. */
 	GLFWwindow* m_window;
+	/** The input handler for this application. */
+	Input& m_inputHandler;
 	/** The pipeline that this frame is moving through. */
 	FramePipeline& m_pipeline;
 	/** The stage that this frame is in */
@@ -40,5 +51,16 @@ public:
 	int64_t m_frameNumber = -1;
 	/** Debug - Is this frame currently being processed? */
 	bool m_active = false;
+
+	/***********
+	 FRAME DATA
+	***********/
+
+	/** The input state at the start of this frame. Valid after FRAME_START. */
+	InputState m_input;
+	/** Matrices and other data about the camera. Valid after GAME_LOGIC. */
+	CameraData m_camera;
+	/** List of models to render. Valid after GAME_LOGIC. */
+	std::vector<ModelToRender> m_modelsToRender;
 };
 

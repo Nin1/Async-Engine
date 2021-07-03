@@ -22,7 +22,7 @@ public:
     }
 
     /** Push a job to the top of the stack. This may only be called safely from the owning thread. */
-    void Push(JobPtr& job)
+    void Push(JobPtr&& job)
     {
         m_jobs[m_top & m_mask] = job;
         // Suppress reordering of instructions by the compiler

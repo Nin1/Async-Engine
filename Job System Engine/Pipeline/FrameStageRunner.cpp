@@ -1,6 +1,6 @@
 #include "FrameStageRunner.h"
 #include "FrameData.h"
-#include "Assert.h"
+#include "../Assert.h"
 #include <Jobs/Jobs.h>
 #include <atomic>
 #include <iostream>
@@ -72,23 +72,21 @@ void FrameStageRunner::StartFrame(FrameData& frame)
 	ASSERT(m_framesBeingExecuted.load() < 2);
 	ASSERT(m_frameData->m_active == false);
 
-	// Set this frame data active, with one dependency on FinishFrame so it won't run until we've updated the queue
+	// Set this frame data active
 	m_frameData->m_active = true;
-	JobCounterPtr jobFinished = Jobs::GetNewJobCounter();
-	jobFinished.m_counter->m_numJobs++;
-	RunJob(jobFinished);
 
-	// Remove one dependency on FinishJob
-	jobFinished.m_counter->m_numJobs--;
+	// Create the start and end jobs for this frame
+	m_jobCounter = Jobs::GetNewJobCounter();
+	Jobs::CreateJobAndCount(StartFrameJob, this, JOBFLAG_NONE, m_jobCounter);
+	Jobs::CreateJobWithDependency(FinishFrameJob, this, JOBFLAG_NONE, m_jobCounter);
 }
 
-void FrameStageRunner::RunJob(JobCounterPtr& jobFinished)
+DEFINE_CLASS_JOB(FrameStageRunner, StartFrameJob)
 {
-	RunJobInner(jobFinished);
-	Jobs::CreateJobWithDependency(FinishFrame, this, jobFinished);
+	RunJobInner(m_jobCounter);
 }
 
-DEFINE_CLASS_JOB(FrameStageRunner, FinishFrame)
+DEFINE_CLASS_JOB(FrameStageRunner, FinishFrameJob)
 {
 	// Queue frame in next stage
 	ASSERT(m_nextStage != nullptr);

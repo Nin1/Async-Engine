@@ -1,7 +1,8 @@
 #pragma once
-#include "FrameData.h"
 #include <Jobs/JobDecl.h>
 #include <GLFW/glfw3.h>
+
+struct FrameData;
 
 /**
  * Renders a scene
