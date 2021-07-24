@@ -134,7 +134,6 @@ void Jobs::ExecuteOuter(JobPtr&& jobPtr)
 			// Decrement parent's children counter
 			if (job.m_parent)
 			{
-				LOG("MT: Decremented parent counter on job %d", jobPtr.m_index);
 				job.m_parent->m_children--;
 			}
 

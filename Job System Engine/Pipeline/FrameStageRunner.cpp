@@ -16,7 +16,7 @@ FrameStageRunner::FrameStageRunner(const char* name)
 
 }
 
-// This should only ever be called by one thread at a time (unless the pipeline ends up branching and converging ever? Will need revisiting if that ever happens)
+// This should only ever be called by one thread at a time
 void FrameStageRunner::QueueFrame(FrameData& frame)
 {
 	// Add frame to queue

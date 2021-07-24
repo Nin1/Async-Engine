@@ -168,9 +168,11 @@
     <ClInclude Include="Pipeline\FrameStageRunner.h" />
     <ClInclude Include="Pipeline\FrameStartRunner.h" />
     <ClInclude Include="Pipeline\GameLogicRunner.h" />
-    <ClInclude Include="Pipeline\GPUExecutionRunner.h" />
+    <ClInclude Include="Pipeline\OpenGLRenderRunner.h" />
     <ClInclude Include="Pipeline\RenderLogicRunner.h" />
     <ClInclude Include="ModelAsset.h" />
+    <ClInclude Include="Pipeline\VulkanRenderRunner.h" />
+    <ClInclude Include="VulkanRenderRunner.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="ShaderLoader.h" />
     <ClInclude Include="ShaderProgram.h" />
@@ -190,9 +192,10 @@
     <ClCompile Include="Pipeline\FrameStageRunner.cpp" />
     <ClCompile Include="Pipeline\FrameStartRunner.cpp" />
     <ClCompile Include="Pipeline\GameLogicRunner.cpp" />
-    <ClCompile Include="Pipeline\GPUExecutionRunner.cpp" />
+    <ClCompile Include="Pipeline\OpenGLRenderRunner.cpp" />
     <ClCompile Include="Pipeline\RenderLogicRunner.cpp" />
     <ClCompile Include="ModelAsset.cpp" />
+    <ClCompile Include="Pipeline\VulkanRenderRunner.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="ShaderLoader.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />

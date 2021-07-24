@@ -55,7 +55,6 @@ public:
 	/***********
 	 FRAME DATA
 	***********/
-
 	/** The input state at the start of this frame. Valid after FRAME_START. */
 	InputState m_input;
 	/** Matrices and other data about the camera. Valid after GAME_LOGIC. */

@@ -75,7 +75,7 @@
     <ClInclude Include="Pipeline\GameLogicRunner.h">
       <Filter>Header Files\Pipeline</Filter>
     </ClInclude>
-    <ClInclude Include="Pipeline\GPUExecutionRunner.h">
+    <ClInclude Include="Pipeline\OpenGLRenderRunner.h">
       <Filter>Header Files\Pipeline</Filter>
     </ClInclude>
     <ClInclude Include="Pipeline\RenderLogicRunner.h">
@@ -107,6 +107,12 @@
     </ClInclude>
     <ClInclude Include="ShaderProgram.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanRenderRunner.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\VulkanRenderRunner.h">
+      <Filter>Header Files\Pipeline</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -143,7 +149,7 @@
     <ClCompile Include="Pipeline\GameLogicRunner.cpp">
       <Filter>Source Files\Pipeline</Filter>
     </ClCompile>
-    <ClCompile Include="Pipeline\GPUExecutionRunner.cpp">
+    <ClCompile Include="Pipeline\OpenGLRenderRunner.cpp">
       <Filter>Source Files\Pipeline</Filter>
     </ClCompile>
     <ClCompile Include="Pipeline\RenderLogicRunner.cpp">
@@ -169,6 +175,9 @@
     </ClCompile>
     <ClCompile Include="ShaderProgram.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline\VulkanRenderRunner.cpp">
+      <Filter>Source Files\Pipeline</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

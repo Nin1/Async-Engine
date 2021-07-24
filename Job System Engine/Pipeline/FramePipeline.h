@@ -2,7 +2,14 @@
 #include "FrameStartRunner.h"
 #include "GameLogicRunner.h"
 #include "RenderLogicRunner.h"
-#include "GPUExecutionRunner.h"
+#include "OpenGLRenderRunner.h"
+#include "VulkanRenderRunner.h"
+
+enum class RenderAPI
+{
+	OPENGL,
+	VULKAN
+};
 
 /**
  * The pipeline through which a frame ends up drawn to the screen.
@@ -19,21 +26,38 @@
  */
 struct FramePipeline
 {
-	void Init()
-	{
-		m_startRunner.SetNextStage((FrameStageRunner*)&m_gameRunner);
-		m_gameRunner.SetNextStage((FrameStageRunner*)&m_renderRunner);
-		m_renderRunner.SetNextStage((FrameStageRunner*)&m_gpuRunner);
-		m_gpuRunner.SetNextStage((FrameStageRunner*)&m_startRunner);
 
+	void Init(RenderAPI renderAPI)
+	{
+		// Set up pipeline order
+		m_startRunner.SetNextStage((FrameStageRunner*)&m_gameRunner);
+		switch (renderAPI)
+		{
+		case RenderAPI::OPENGL:
+			m_gameRunner.SetNextStage((FrameStageRunner*)&m_openGLRunner);
+			m_openGLRunner.SetNextStage((FrameStageRunner*)&m_startRunner);
+			break;
+		case RenderAPI::VULKAN:
+			m_gameRunner.SetNextStage((FrameStageRunner*)&m_vulkanRunner);
+			m_vulkanRunner.SetNextStage((FrameStageRunner*)&m_startRunner);
+		}
+
+		// Initialise pipeline stages
 		m_startRunner.Init();
 		m_gameRunner.Init();
-		m_renderRunner.Init();
-		m_gpuRunner.Init();
+		switch (renderAPI)
+		{
+		case RenderAPI::OPENGL:
+			m_openGLRunner.Init();
+			break;
+		case RenderAPI::VULKAN:
+			m_vulkanRunner.Init();
+		}
 	}
 
 	FrameStartRunner m_startRunner;
 	GameLogicRunner m_gameRunner;
-	RenderLogicRunner m_renderRunner;
-	GPUExecutionRunner m_gpuRunner;
+	OpenGLRenderRunner m_openGLRunner;
+	VulkanRenderRunner m_vulkanRunner;
+
 };

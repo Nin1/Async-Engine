@@ -8,10 +8,8 @@
 void FrameStartRunner::RunJobInner(JobCounterPtr& jobCounter)
 {
 	// Reset this frameData
-	ASSERT(m_frameData->m_stage == FrameStage::GPU_EXECUTION || m_frameData->m_stage == FrameStage::FRAME_START);
 	m_frameData->Reset(m_frameCount);
 	m_frameCount++;
-	//std::cout << "Starting frame " << m_frameData->m_frameNumber << std::endl;
 
 	// glfw events must be run on the main thread, so do that here
 	Jobs::CreateJobAndCount(FrameStartRunner::MainThreadTasks, this, JOBFLAG_MAINTHREAD, jobCounter);

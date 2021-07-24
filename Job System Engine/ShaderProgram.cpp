@@ -4,7 +4,10 @@
 
 ShaderProgram::~ShaderProgram()
 {
-	glDeleteShader(m_programID);
+	if (m_state == ShaderState::READY)
+	{
+		glDeleteShader(m_programID);
+	}
 }
 
 void ShaderProgram::Load(const char* shaderName)
