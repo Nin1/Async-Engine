@@ -23,7 +23,8 @@ DEFINE_CLASS_JOB(GameApp, Init)
 {
 	std::cout << "Initialising window" << std::endl;
 
-	const RenderAPI renderAPI = RenderAPI::VULKAN;
+	// TODO: Vulkan unsupported
+	const RenderAPI renderAPI = RenderAPI::OPENGL;
 
 	// Init GLFW and window
 	glfwInit();

@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 
+
 void ShaderLoader::Load(const char* filename)
 {
 	ASSERT(m_state == LoadState::UNLOADED);

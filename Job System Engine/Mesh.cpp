@@ -31,13 +31,11 @@ bool Mesh::Load(const char* modelPath)
 	/** Load the model file */
 
 	std::ifstream modelFile(modelPath, std::ios::in);
-
-	if (!modelFile)
+	if (!modelFile.is_open())
 	{
 		std::cout << "Error opening file: " << modelPath << std::endl;
 		return false;
 	}
-
 	std::cout << "Loading model: " << modelPath << std::endl;
 
 	/** Set up temporary containers */
@@ -152,6 +150,7 @@ bool Mesh::Load(const char* modelPath)
 			}
 		}
 	}
+	modelFile.close();
 
 	/** Convert to usable mesh data */
 
