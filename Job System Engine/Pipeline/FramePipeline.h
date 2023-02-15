@@ -3,7 +3,7 @@
 #include "GameLogicRunner.h"
 #include "RenderLogicRunner.h"
 #include "OpenGLRenderRunner.h"
-#include "VulkanRenderRunner.h"
+#include "../Assert.h"
 
 enum class RenderAPI
 {
@@ -38,8 +38,7 @@ struct FramePipeline
 			m_openGLRunner.SetNextStage((FrameStageRunner*)&m_startRunner);
 			break;
 		case RenderAPI::VULKAN:
-			m_gameRunner.SetNextStage((FrameStageRunner*)&m_vulkanRunner);
-			m_vulkanRunner.SetNextStage((FrameStageRunner*)&m_startRunner);
+			ASSERTM(false, "Vulkan not implemented");
 		}
 
 		// Initialise pipeline stages
@@ -51,13 +50,13 @@ struct FramePipeline
 			m_openGLRunner.Init();
 			break;
 		case RenderAPI::VULKAN:
-			m_vulkanRunner.Init();
+			ASSERTM(false, "Vulkan not implemented");
+			break;
 		}
 	}
 
 	FrameStartRunner m_startRunner;
 	GameLogicRunner m_gameRunner;
 	OpenGLRenderRunner m_openGLRunner;
-	VulkanRenderRunner m_vulkanRunner;
 
 };
