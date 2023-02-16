@@ -3,7 +3,7 @@
 #include "GameLogicRunner.h"
 #include "RenderLogicRunner.h"
 #include "OpenGLRenderRunner.h"
-#include "../Assert.h"
+#include <Diagnostic/Assert.h>
 
 enum class RenderAPI
 {
@@ -16,8 +16,7 @@ enum class RenderAPI
  *
  * Stages that may be useful:
  * - Frame start
- * - Game scripts
- * - Physics simulation
+ * - Game scripts & Physics simulation
  * - Visibility & occlusion
  * - Render data extraction
  * - Render data processing (& GPU command buffer generation)

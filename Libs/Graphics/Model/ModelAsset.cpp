@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ModelAsset.h"
 #include "Assert.h"
 #include <Jobs/Jobs.h>

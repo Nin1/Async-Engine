@@ -1,6 +1,6 @@
 #pragma once
 #include "CellShape.h"
-#include "Mesh.h"
+#include <Graphics/Model/Mesh.h>
 #include <array>
 
 class CellModel

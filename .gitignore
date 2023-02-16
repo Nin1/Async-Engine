@@ -5,7 +5,10 @@
 *.slo
 *.lo
 *.o
-#Not .obj because they are assets too
+# Special handling because we've got .obj model files
+**/x64/**/*.obj
+**/x64/**/*.obj
+x64/**/*.lib
 
 # Precompiled Headers
 *.gch

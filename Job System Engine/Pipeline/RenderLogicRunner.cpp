@@ -1,6 +1,6 @@
 #include "RenderLogicRunner.h"
 #include "FrameData.h"
-#include "../Assert.h"
+#include <Diagnostic/Assert.h>
 #include <iostream>
 
 void RenderLogicRunner::Init()

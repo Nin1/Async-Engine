@@ -13,12 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Libs">
-      <UniqueIdentifier>{324b0897-4136-41fa-bfaf-5c88db338862}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Libs\Jobs">
-      <UniqueIdentifier>{11ae9ce0-f99a-462f-b97a-c43e328b01c8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\Pipeline">
       <UniqueIdentifier>{074ffd1a-aa11-4720-aec5-02af5a40f3bf}</UniqueIdentifier>
     </Filter>
@@ -27,23 +21,8 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Libs\Jobs\JobStack.h">
-      <Filter>Libs\Jobs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Libs\Jobs\Job.h">
-      <Filter>Libs\Jobs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Libs\Jobs\Jobs.h">
-      <Filter>Libs\Jobs</Filter>
-    </ClInclude>
     <ClInclude Include="GameApp.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Libs\Jobs\JobDecl.h">
-      <Filter>Libs\Jobs</Filter>
-    </ClInclude>
-    <ClInclude Include="Assert.h">
-      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Scene.h">
       <Filter>Header Files</Filter>
@@ -55,9 +34,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CellModel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Pipeline\FrameData.h">
@@ -81,31 +57,7 @@
     <ClInclude Include="Pipeline\RenderLogicRunner.h">
       <Filter>Header Files\Pipeline</Filter>
     </ClInclude>
-    <ClInclude Include="Camera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Transform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CameraData.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Input.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ModelAsset.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ModelToRender.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ShaderLoader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GraphicsAsset.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ShaderProgram.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="VulkanRenderRunner.h">
@@ -116,9 +68,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Libs\Jobs\Jobs.cpp">
-      <Filter>Libs\Jobs</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -132,9 +81,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CellModel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Pipeline\FrameData.cpp">
@@ -155,25 +101,7 @@
     <ClCompile Include="Pipeline\RenderLogicRunner.cpp">
       <Filter>Source Files\Pipeline</Filter>
     </ClCompile>
-    <ClCompile Include="Camera.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Transform.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Input.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ModelAsset.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ShaderLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GraphicsAsset.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ShaderProgram.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Pipeline\VulkanRenderRunner.cpp">

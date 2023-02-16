@@ -78,12 +78,12 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)Libs;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)Libs;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -92,6 +92,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)Libs;$(SolutionDir)ExternalLibs\GLM;$(SolutionDir)ExternalLibs\GLFW\include;$(SolutionDir)ExternalLibs\GLEW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -106,6 +107,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)Libs;$(SolutionDir)ExternalLibs\GLM;$(SolutionDir)ExternalLibs\GLFW\include;$(SolutionDir)ExternalLibs\GLEW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -120,7 +122,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);GLEW_STATIC</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ExternalLibs\GLM;$(SolutionDir)ExternalLibs\GLFW\include;$(SolutionDir)ExternalLibs\GLEW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Libs;$(SolutionDir)ExternalLibs\GLM;$(SolutionDir)ExternalLibs\GLFW\include;$(SolutionDir)ExternalLibs\GLEW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -138,7 +140,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);GLEW_STATIC</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ExternalLibs\GLM;$(SolutionDir)ExternalLibs\GLFW\include;$(SolutionDir)ExternalLibs\GLEW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Libs;$(SolutionDir)ExternalLibs\GLM;$(SolutionDir)ExternalLibs\GLFW\include;$(SolutionDir)ExternalLibs\GLEW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -151,20 +153,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\Libs\Jobs\Job.h" />
-    <ClInclude Include="..\Libs\Jobs\JobDecl.h" />
-    <ClInclude Include="..\Libs\Jobs\Jobs.h" />
-    <ClInclude Include="..\Libs\Jobs\JobStack.h" />
-    <ClInclude Include="Assert.h" />
-    <ClInclude Include="Camera.h" />
-    <ClInclude Include="CameraData.h" />
     <ClInclude Include="CellModel.h" />
     <ClInclude Include="CellShape.h" />
     <ClInclude Include="GameApp.h" />
-    <ClInclude Include="GraphicsAsset.h" />
     <ClInclude Include="Input.h" />
-    <ClInclude Include="Mesh.h" />
-    <ClInclude Include="ModelToRender.h" />
     <ClInclude Include="Pipeline\FrameData.h" />
     <ClInclude Include="Pipeline\FramePipeline.h" />
     <ClInclude Include="Pipeline\FrameStageRunner.h" />
@@ -172,37 +164,42 @@
     <ClInclude Include="Pipeline\GameLogicRunner.h" />
     <ClInclude Include="Pipeline\OpenGLRenderRunner.h" />
     <ClInclude Include="Pipeline\RenderLogicRunner.h" />
-    <ClInclude Include="ModelAsset.h" />
     <ClInclude Include="Pipeline\VulkanRenderRunner.h" />
     <ClInclude Include="VulkanRenderRunner.h" />
     <ClInclude Include="Scene.h" />
-    <ClInclude Include="ShaderLoader.h" />
-    <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="SimpleRenderer.h" />
-    <ClInclude Include="Transform.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Libs\Jobs\Jobs.cpp" />
-    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CellModel.cpp" />
     <ClCompile Include="GameApp.cpp" />
-    <ClCompile Include="GraphicsAsset.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Pipeline\FrameData.cpp" />
     <ClCompile Include="Pipeline\FrameStageRunner.cpp" />
     <ClCompile Include="Pipeline\FrameStartRunner.cpp" />
     <ClCompile Include="Pipeline\GameLogicRunner.cpp" />
     <ClCompile Include="Pipeline\OpenGLRenderRunner.cpp" />
     <ClCompile Include="Pipeline\RenderLogicRunner.cpp" />
-    <ClCompile Include="ModelAsset.cpp" />
     <ClCompile Include="Pipeline\VulkanRenderRunner.cpp" />
     <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="ShaderLoader.cpp" />
-    <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="SimpleRenderer.cpp" />
-    <ClCompile Include="Transform.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Libs\Collision\Collision.vcxproj">
+      <Project>{8a4fa36f-72f5-40fd-833a-a233906647f0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Libs\Diagnostic\Diagnostic.vcxproj">
+      <Project>{267bb7a4-7d9c-4d2d-bd03-6a09a2760759}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Libs\Graphics\Graphics.vcxproj">
+      <Project>{8f9f165f-caec-4409-804d-7757c7d92612}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Libs\Jobs\Jobs.vcxproj">
+      <Project>{713d8c2f-d8a5-4aae-adee-d83073ebcca5}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Libs\Maths\Maths.vcxproj">
+      <Project>{32a7e373-03e2-4b4e-810f-baa79aa00ecf}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

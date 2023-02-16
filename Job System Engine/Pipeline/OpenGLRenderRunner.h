@@ -1,6 +1,6 @@
 #pragma once
 #include "FrameStageRunner.h"
-#include "../ShaderProgram.h"
+#include <Graphics/Shader/ShaderProgram.h>
 
 
 class OpenGLRenderRunner : public FrameStageRunner

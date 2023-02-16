@@ -1,7 +1,7 @@
 #pragma once
 #include "FrameStageRunner.h"
-#include "../Camera.h"
-#include "../ModelAsset.h"
+#include <Graphics/Camera/Camera.h>
+#include <Graphics/Model/ModelAsset.h>
 
 class GameLogicRunner : public FrameStageRunner
 {

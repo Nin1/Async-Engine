@@ -1,8 +1,8 @@
 #include <GL/glew.h>
 #include "OpenGLRenderRunner.h"
 #include "FrameData.h"
-#include "../Assert.h"
 #include "../Input.h"
+#include <Diagnostic/Assert.h>
 #include <iostream>
 #include <cstdio>
 #include <GLFW/glfw3.h>

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ShaderProgram.h"
 #include "Assert.h"
 #include <iostream>

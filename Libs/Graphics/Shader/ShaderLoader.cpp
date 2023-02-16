@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ShaderLoader.h"
 #include "Assert.h"
 #include <Jobs/Jobs.h>

@@ -10,7 +10,7 @@ struct FrameData;
 class FrameStageRunner
 {
 public:
-	static constexpr int SIMULTANEOUS_FRAMES = 4;
+	static constexpr int SIMULTANEOUS_FRAMES = 6;
 
 	FrameStageRunner(const char* name);
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "GraphicsAsset.h"
+#include "../GraphicsAsset.h"
 #include "Mesh.h"
 #include <Jobs/JobDecl.h>
 #include <memory>

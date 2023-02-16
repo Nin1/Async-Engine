@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
-#include "../CameraData.h"
-#include "../ModelToRender.h"
+#include <Graphics/Camera/CameraData.h>
+#include <Graphics/Model/ModelToRender.h>
 #include "../Input.h"
 
 struct GLFWwindow;
@@ -55,6 +55,7 @@ public:
 	/***********
 	 FRAME DATA
 	***********/
+
 	/** The input state at the start of this frame. Valid after FRAME_START. */
 	InputState m_input;
 	/** Matrices and other data about the camera. Valid after GAME_LOGIC. */

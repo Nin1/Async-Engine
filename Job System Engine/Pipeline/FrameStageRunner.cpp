@@ -1,6 +1,6 @@
 #include "FrameStageRunner.h"
 #include "FrameData.h"
-#include "../Assert.h"
+#include <Diagnostic/Assert.h>
 #include <Jobs/Jobs.h>
 #include <atomic>
 #include <iostream>
