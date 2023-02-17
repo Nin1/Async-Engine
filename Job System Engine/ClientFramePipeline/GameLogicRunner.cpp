@@ -1,7 +1,6 @@
 #include "GameLogicRunner.h"
-#include "FrameData.h"
 #include <Diagnostic/Assert.h>
-#include "../Input.h"
+#include <Input/InputState.h>
 #include <iostream>
 
 void GameLogicRunner::Init()

@@ -1,6 +1,5 @@
 #include "FrameStartRunner.h"
-#include "FrameData.h"
-#include "../Input.h"
+#include <Input/Input.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
 

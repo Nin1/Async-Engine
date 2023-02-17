@@ -1,7 +1,7 @@
 #pragma once
 #include <Graphics/Camera/CameraData.h>
 #include <Graphics/Model/ModelToRender.h>
-#include "Input.h"
+#include <Input/Input.h>
 
 enum class FrameStage
 {

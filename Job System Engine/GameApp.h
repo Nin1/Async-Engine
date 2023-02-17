@@ -1,11 +1,9 @@
 #pragma once
 #include <GL/glew.h>
-#include "Pipeline/FramePipeline.h"
-#include "Input.h"
-#include "Scene.h"
-#include "Pipeline/FrameData.h"
-#include "ClientFrameData.h"
+#include <FramePipeline/FramePipeline.h>
 #include <Jobs/JobDecl.h>
+#include "ClientFramePipeline/ClientFrameData.h"
+#include <Input/Input.h>
 
 class GameApp
 {
@@ -29,7 +27,6 @@ private:
 
 private:
 	Input m_input;
-	Scene m_scene;
 	FramePipeline<ClientFrameData> m_pipeline;
 
 	// TODO: Singleton

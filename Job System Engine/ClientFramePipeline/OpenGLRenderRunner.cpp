@@ -1,7 +1,5 @@
 #include <GL/glew.h>
 #include "OpenGLRenderRunner.h"
-#include "../ClientFrameData.h"
-#include "../Input.h"
 #include <Diagnostic/Assert.h>
 #include <iostream>
 #include <cstdio>

@@ -1,8 +1,8 @@
 #include "GameApp.h"
 #include "Assert.h"
-#include "Pipeline/OpenGLRenderRunner.h"
-#include "Pipeline/GameLogicRunner.h"
-#include "Pipeline/FrameStartRunner.h"
+#include "ClientFramePipeline/OpenGLRenderRunner.h"
+#include "ClientFramePipeline/GameLogicRunner.h"
+#include "ClientFramePipeline/FrameStartRunner.h"
 #include <GLFW/glfw3.h>
 #include <Jobs/Jobs.h>
 
@@ -26,15 +26,13 @@ DEFINE_CLASS_JOB(GameApp, Init)
 {
 	std::cout << "Initialising window" << std::endl;
 
-	const RenderAPI renderAPI = RenderAPI::OPENGL;
-
 	// Init GLFW and window
 	glfwInit();
-	if (renderAPI == RenderAPI::VULKAN)
-	{
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-	}
+	//if (renderAPI == RenderAPI::VULKAN)
+	//{
+	//	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	//	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	//}
 	m_window = glfwCreateWindow(800, 600, "Engine", nullptr, nullptr);
 	glfwMakeContextCurrent(m_window);
 	glfwSwapInterval(0); //Disables vsync

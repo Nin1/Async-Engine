@@ -19,6 +19,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Diagnostic", "Libs\Diagnost
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FramePipeline", "Libs\FramePipeline\FramePipeline.vcxproj", "{3D523A65-BB89-4708-95FF-8BA7F1843584}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Input", "Libs\Input\Input.vcxproj", "{EBC05FE2-F589-451C-9A37-8A6375754639}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -91,6 +93,14 @@ Global
 		{3D523A65-BB89-4708-95FF-8BA7F1843584}.Release|x64.Build.0 = Release|x64
 		{3D523A65-BB89-4708-95FF-8BA7F1843584}.Release|x86.ActiveCfg = Release|Win32
 		{3D523A65-BB89-4708-95FF-8BA7F1843584}.Release|x86.Build.0 = Release|Win32
+		{EBC05FE2-F589-451C-9A37-8A6375754639}.Debug|x64.ActiveCfg = Debug|x64
+		{EBC05FE2-F589-451C-9A37-8A6375754639}.Debug|x64.Build.0 = Debug|x64
+		{EBC05FE2-F589-451C-9A37-8A6375754639}.Debug|x86.ActiveCfg = Debug|Win32
+		{EBC05FE2-F589-451C-9A37-8A6375754639}.Debug|x86.Build.0 = Debug|Win32
+		{EBC05FE2-F589-451C-9A37-8A6375754639}.Release|x64.ActiveCfg = Release|x64
+		{EBC05FE2-F589-451C-9A37-8A6375754639}.Release|x64.Build.0 = Release|x64
+		{EBC05FE2-F589-451C-9A37-8A6375754639}.Release|x86.ActiveCfg = Release|Win32
+		{EBC05FE2-F589-451C-9A37-8A6375754639}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

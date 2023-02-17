@@ -2,12 +2,6 @@
 #include "FrameStageRunner.h"
 #include <Diagnostic/Assert.h>
 
-enum class RenderAPI
-{
-	OPENGL,
-	VULKAN
-};
-
 template<typename DATA>
 struct FrameData;
 

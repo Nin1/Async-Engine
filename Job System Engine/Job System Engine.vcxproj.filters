@@ -5,66 +5,35 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\Pipeline">
-      <UniqueIdentifier>{074ffd1a-aa11-4720-aec5-02af5a40f3bf}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\Pipeline">
-      <UniqueIdentifier>{6a8c43d4-2bbe-4d74-a52b-9fa2046f61ec}</UniqueIdentifier>
+    <Filter Include="Source Files\ClientFramePipeline">
+      <UniqueIdentifier>{b2223e04-cf46-47e1-915a-b668bc66083f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ClientFramePipeline\ClientFrameData.h">
+      <Filter>Source Files\ClientFramePipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="ClientFramePipeline\FrameStartRunner.h">
+      <Filter>Source Files\ClientFramePipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="ClientFramePipeline\GameLogicRunner.h">
+      <Filter>Source Files\ClientFramePipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="ClientFramePipeline\OpenGLRenderRunner.h">
+      <Filter>Source Files\ClientFramePipeline</Filter>
+    </ClInclude>
     <ClInclude Include="GameApp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SimpleRenderer.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="CellShape.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="CellModel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Pipeline\FrameData.h">
-      <Filter>Header Files\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="Pipeline\FramePipeline.h">
-      <Filter>Header Files\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="Pipeline\FrameStageRunner.h">
-      <Filter>Header Files\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="Pipeline\FrameStartRunner.h">
-      <Filter>Header Files\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="Pipeline\GameLogicRunner.h">
-      <Filter>Header Files\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="Pipeline\OpenGLRenderRunner.h">
-      <Filter>Header Files\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="Input.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VulkanRenderRunner.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ClientFrameData.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Pipeline\FrameStageRunner.inl">
-      <Filter>Header Files\Pipeline</Filter>
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -74,26 +43,17 @@
     <ClCompile Include="GameApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Scene.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SimpleRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CellModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Pipeline\FrameStartRunner.cpp">
-      <Filter>Source Files\Pipeline</Filter>
+    <ClCompile Include="ClientFramePipeline\FrameStartRunner.cpp">
+      <Filter>Source Files\ClientFramePipeline</Filter>
     </ClCompile>
-    <ClCompile Include="Pipeline\GameLogicRunner.cpp">
-      <Filter>Source Files\Pipeline</Filter>
+    <ClCompile Include="ClientFramePipeline\GameLogicRunner.cpp">
+      <Filter>Source Files\ClientFramePipeline</Filter>
     </ClCompile>
-    <ClCompile Include="Pipeline\OpenGLRenderRunner.cpp">
-      <Filter>Source Files\Pipeline</Filter>
-    </ClCompile>
-    <ClCompile Include="Input.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="ClientFramePipeline\OpenGLRenderRunner.cpp">
+      <Filter>Source Files\ClientFramePipeline</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
