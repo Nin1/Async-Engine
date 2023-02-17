@@ -5,19 +5,20 @@
 template<typename DATA>
 FrameStageRunner<DATA>::FrameStageRunner()
 {
-	InitFrameQueue();
 }
 
 template<typename DATA>
 FrameStageRunner<DATA>::FrameStageRunner(const char* name)
 	: m_name(name)
 {
-	InitFrameQueue();
 }
 
 template<typename DATA>
-void FrameStageRunner<DATA>::InitFrameQueue()
+void FrameStageRunner<DATA>::InitFrameQueue(size_t simultaneousFrames)
 {
+	m_numSimultaneousFrames = simultaneousFrames;
+	m_freeList.resize(m_numSimultaneousFrames);
+	m_freeListInUse.resize(m_numSimultaneousFrames);
 	FrameNodePtr<DATA> nodePtr = AllocateFrameNode();
 	FrameNode<DATA>& node = *nodePtr.m_ptr;
 	node.m_next.store({ nullptr, 0, -1 });
@@ -133,7 +134,7 @@ FrameStageRunner<DATA>::FrameNodePtr<DATA> FrameStageRunner<DATA>::AllocateFrame
 	// Lock until we get a node
 	while (_InterlockedCompareExchange8(&m_freeListInUse[index], IN_USE, NOT_IN_USE) == IN_USE)
 	{
-		index = (index + 1) % SIMULTANEOUS_FRAMES;
+		index = (index + 1) % m_numSimultaneousFrames;
 	}
 	// Return the node
 	return { &m_freeList[index], 0, index };

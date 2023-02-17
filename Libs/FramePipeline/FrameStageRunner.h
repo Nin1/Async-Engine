@@ -12,13 +12,14 @@ template<typename DATA>
 class FrameStageRunner
 {
 public:
-	static constexpr int SIMULTANEOUS_FRAMES = 6;
-
 	FrameStageRunner();
 	FrameStageRunner(const char* name);
 	FrameStageRunner(const FrameStageRunner<DATA>&) = delete;
 	FrameStageRunner& operator=(const FrameStageRunner<DATA>&) = delete;
 	~FrameStageRunner() = default;
+
+	/** Initialises the Frame Queue to allow up-to-N frames */
+	void InitFrameQueue(size_t simultaneousFrames);
 
 	/** Overridable initialisation that runs on app start-up */
 	virtual void Init() { }
@@ -70,6 +71,10 @@ private:
 	template<typename DATA>
 	struct FrameNode
 	{
+		FrameNode() { }
+		FrameNode(const FrameNode<DATA>&) { }
+		FrameNode& operator=(const FrameNode<DATA>&) { };
+		~FrameNode() = default;
 		FrameData<DATA>* m_frame;
 		std::atomic<FrameNodePtr<DATA>> m_next;
 	};
@@ -80,8 +85,6 @@ private:
 		std::atomic<FrameNodePtr<DATA>> m_tail;
 	};
 
-	/** Initialises the frame queue */
-	void InitFrameQueue();
 	/** Start the next frame */
 	void StartFrame(FrameData<DATA>& frame);
 	/** Calls the overridable RunJobInner, and creates the FinishFrame job for when the stage has finished */
@@ -113,10 +116,12 @@ private:
 	/** Lock-free concurrent queue of frames to run */
 	FrameQueue m_queue;
 	/** Free list for allocating FrameNodes */
-	std::array<FrameNode<DATA>, SIMULTANEOUS_FRAMES> m_freeList;
-	std::array<char, SIMULTANEOUS_FRAMES> m_freeListInUse;
+	std::vector<FrameNode<DATA>> m_freeList;
+	std::vector<char> m_freeListInUse;
 	/** Stage to send completed frames to */
 	FrameStageRunner* m_nextStage = nullptr;
+	/** Number of simultaneous frames that the parent pipeline allows */
+	size_t m_numSimultaneousFrames = 0;
 
 	// Debug
 	const char* m_name;

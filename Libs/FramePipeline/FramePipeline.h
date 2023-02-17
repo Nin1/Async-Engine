@@ -37,6 +37,7 @@ struct FramePipeline
 		// Initialise each stage
 		for (int i = 0; i < m_stages.size(); i++)
 		{
+			m_stages[i]->InitFrameQueue(numSimultaneousFrames);
 			m_stages[i]->Init();
 		}
 
