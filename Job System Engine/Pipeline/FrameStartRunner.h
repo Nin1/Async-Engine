@@ -1,8 +1,9 @@
 #pragma once
 #include "FrameStageRunner.h"
+#include "../ClientFrameData.h"
 #include <Jobs/JobDecl.h>
 
-class FrameStartRunner : public FrameStageRunner
+class FrameStartRunner : public FrameStageRunner<ClientFrameData>
 {
 public:
 	FrameStartRunner() : FrameStageRunner("Frame Start") { }

@@ -1,5 +1,8 @@
 #include "GameApp.h"
 #include "Assert.h"
+#include "Pipeline/OpenGLRenderRunner.h"
+#include "Pipeline/GameLogicRunner.h"
+#include "Pipeline/FrameStartRunner.h"
 #include <GLFW/glfw3.h>
 #include <Jobs/Jobs.h>
 
@@ -56,21 +59,15 @@ DEFINE_CLASS_JOB(GameApp, Init)
 		});
 
 	// Initialise frame pipeline
-	m_pipeline.Init(renderAPI);
-
-	// Set up frames
-	m_frames.reserve(FrameStageRunner::SIMULTANEOUS_FRAMES);
-	for (int i = 0; i < FrameStageRunner::SIMULTANEOUS_FRAMES; i++)
-	{
-		m_frames.emplace_back(i, m_pipeline, m_window, m_input);
-	}
+	constexpr int NUM_SIMULTANEOUS_FRAMES = 4;
+	std::vector<std::unique_ptr<FrameStageRunner<ClientFrameData>>> stages;
+	stages.emplace_back(std::make_unique<FrameStartRunner>());
+	stages.emplace_back(std::make_unique<GameLogicRunner>());
+	stages.emplace_back(std::make_unique<OpenGLRenderRunner>());
+	m_pipeline.Init(std::move(stages), NUM_SIMULTANEOUS_FRAMES, ClientFrameData(m_window, m_input));
 }
 
 DEFINE_CLASS_JOB(GameApp, StartMainLoop)
 {
-	// Kick off all frames
-	for (int i = 0; i < FrameStageRunner::SIMULTANEOUS_FRAMES; i++)
-	{
-		m_pipeline.m_startRunner.QueueFrame(m_frames[i]);
-	}
+	m_pipeline.Start();
 }

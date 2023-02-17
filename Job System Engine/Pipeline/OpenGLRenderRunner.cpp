@@ -1,6 +1,6 @@
 #include <GL/glew.h>
 #include "OpenGLRenderRunner.h"
-#include "FrameData.h"
+#include "../ClientFrameData.h"
 #include "../Input.h"
 #include <Diagnostic/Assert.h>
 #include <iostream>
@@ -48,13 +48,14 @@ void OpenGLRenderRunner::Init()
 
 void OpenGLRenderRunner::RunJobInner(JobCounterPtr& jobCounter)
 {
+	ClientFrameData& frameData = *m_frameData->GetData();
 	// Debug: Make sure frames are running in the correct order
-	ASSERT(m_frameData->m_frameNumber == m_framesCompleted);
+	ASSERT(frameData.m_frameNumber == m_framesCompleted);
 
-	m_frameData->m_stage = FrameStage::GPU_EXECUTION;
-	if (m_frameData->m_frameNumber % 100 == 0)
+	frameData.m_stage = FrameStage::GPU_EXECUTION;
+	if (frameData.m_frameNumber % 100 == 0)
 	{
-		std::printf("Completed frame %I64d \n", m_frameData->m_frameNumber);
+		std::printf("Completed frame %I64d \n", frameData.m_frameNumber);
 	}
 
 	// Make sure rendering all happens on the main thread
@@ -65,6 +66,8 @@ void OpenGLRenderRunner::RunJobInner(JobCounterPtr& jobCounter)
 
 DEFINE_CLASS_JOB(OpenGLRenderRunner, MainThreadTasks)
 {
+	ClientFrameData& frameData = *m_frameData->GetData();
+
 	/*************
 	* PRE-RENDER *
 	*************/
@@ -76,7 +79,7 @@ DEFINE_CLASS_JOB(OpenGLRenderRunner, MainThreadTasks)
 	}
 
 	// Upload any models that we need to
-	for (auto& model : m_frameData->m_modelsToRender)
+	for (auto& model : frameData.m_modelsToRender)
 	{
 		// If this model isn't uploaded yet, upload it
 		if (model.m_model.GetLoadState() == LoadState::LOADED)
@@ -92,7 +95,7 @@ DEFINE_CLASS_JOB(OpenGLRenderRunner, MainThreadTasks)
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	for (auto& model : m_frameData->m_modelsToRender)
+	for (auto& model : frameData.m_modelsToRender)
 	{
 		// If this model is uploaded, and the shader it asks for is uploaded, render it
 		if (model.m_model.GetLoadState() == LoadState::UPLOADED && m_solidColourShader.GetState() == ShaderState::READY)
@@ -101,7 +104,7 @@ DEFINE_CLASS_JOB(OpenGLRenderRunner, MainThreadTasks)
 			glUseProgram(m_solidColourShader.GetProgramID());
 
 			model.m_model.PrepareForRendering();
-			glm::mat4 modelViewProj = m_frameData->m_camera.m_projMatrix * m_frameData->m_camera.m_viewMatrix * model.m_transRotScale;
+			glm::mat4 modelViewProj = frameData.m_camera.m_projMatrix * frameData.m_camera.m_viewMatrix * model.m_transRotScale;
 			m_solidColourShader.SetGlUniformMat4("mvp", modelViewProj);
 			glDrawArrays(GL_TRIANGLES, 0, model.m_model.GetVertexCount());
 		}
@@ -110,5 +113,5 @@ DEFINE_CLASS_JOB(OpenGLRenderRunner, MainThreadTasks)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	glfwSwapBuffers(m_frameData->m_window);
+	glfwSwapBuffers(frameData.m_window);
 }

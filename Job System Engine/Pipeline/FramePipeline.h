@@ -1,8 +1,5 @@
 #pragma once
-#include "FrameStartRunner.h"
-#include "GameLogicRunner.h"
-#include "RenderLogicRunner.h"
-#include "OpenGLRenderRunner.h"
+#include "FrameStageRunner.h"
 #include <Diagnostic/Assert.h>
 
 enum class RenderAPI
@@ -11,8 +8,13 @@ enum class RenderAPI
 	VULKAN
 };
 
+template<typename DATA>
+struct FrameData;
+
 /**
  * The pipeline through which a frame ends up drawn to the screen.
+ * Create by passing a vector of stages in order into Init().
+ * Call Start() to begin pushing frames through the pipeline. When they complete, they will return to the start of the pipeline.
  *
  * Stages that may be useful:
  * - Frame start
@@ -23,39 +25,46 @@ enum class RenderAPI
  * - GPU execution
  *
  */
+template<typename DATA>
 struct FramePipeline
 {
-
-	void Init(RenderAPI renderAPI)
+	void Init(std::vector<std::unique_ptr<FrameStageRunner<DATA>>>&& pipelineStages, int numSimultaneousFrames, const DATA& defaultData)
 	{
-		// Set up pipeline order
-		m_startRunner.SetNextStage((FrameStageRunner*)&m_gameRunner);
-		switch (renderAPI)
+		m_stages = std::move(pipelineStages);
+
+		// Link each stage to the next
+		for (int i = 0; i < m_stages.size() - 1; i++)
 		{
-		case RenderAPI::OPENGL:
-			m_gameRunner.SetNextStage((FrameStageRunner*)&m_openGLRunner);
-			m_openGLRunner.SetNextStage((FrameStageRunner*)&m_startRunner);
-			break;
-		case RenderAPI::VULKAN:
-			ASSERTM(false, "Vulkan not implemented");
+			m_stages[i]->SetNextStage(m_stages[i + 1].get());
+		}
+		// Final stage loops back to start
+		m_stages[m_stages.size() - 1]->SetNextStage(m_stages[0].get());
+
+		// Initialise each stage
+		for (int i = 0; i < m_stages.size(); i++)
+		{
+			m_stages[i]->Init();
 		}
 
-		// Initialise pipeline stages
-		m_startRunner.Init();
-		m_gameRunner.Init();
-		switch (renderAPI)
+		// Set up frames
+		m_frames.reserve(numSimultaneousFrames);
+		for (int i = 0; i < numSimultaneousFrames; i++)
 		{
-		case RenderAPI::OPENGL:
-			m_openGLRunner.Init();
-			break;
-		case RenderAPI::VULKAN:
-			ASSERTM(false, "Vulkan not implemented");
-			break;
+			m_frames.emplace_back(i, defaultData);
 		}
 	}
 
-	FrameStartRunner m_startRunner;
-	GameLogicRunner m_gameRunner;
-	OpenGLRenderRunner m_openGLRunner;
+	void Start()
+	{
+		// Kick off all frames
+		for (int i = 0; i < m_frames.size(); i++)
+		{
+			m_stages[0]->QueueFrame(m_frames[i]);
+		}
+	}
 
+	/** Stages that a frame goes through in order */
+	std::vector<std::unique_ptr<FrameStageRunner<DATA>>> m_stages;
+	/** Objects containing transient data for each frame in flight */
+	std::vector<FrameData<DATA>> m_frames;
 };

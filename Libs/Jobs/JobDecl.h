@@ -8,8 +8,14 @@
 void _##jobName(); \
 static void jobName(void* data) { static_cast<className*>(data)->_##jobName(); } \
 
+#define DECLARE_TEMPLATE_CLASS_JOB(templateType, className, jobName) \
+void _##jobName(); \
+static void jobName(void* data) { static_cast<className<##templateType>*>(data)->_##jobName(); } \
+
 /** Macro to define a class job in a .cpp file with no parameters. */
 #define DEFINE_CLASS_JOB(className, jobName) void className::_##jobName()
+/** Macro to define a template class job in a .cpp file with no parameters. */
+#define DEFINE_TEMPLATE_CLASS_JOB(templateType, className, jobName) void className<##templateType>::_##jobName()
 
 
 /** Macro to declare a job function. */

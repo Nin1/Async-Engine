@@ -7,7 +7,8 @@
 void FrameStartRunner::RunJobInner(JobCounterPtr& jobCounter)
 {
 	// Reset this frameData
-	m_frameData->Reset(m_frameCount);
+	ClientFrameData& frameData = *m_frameData->GetData();
+	frameData.Reset(m_frameCount);
 	m_frameCount++;
 
 	// glfw events must be run on the main thread, so do that here
@@ -16,18 +17,19 @@ void FrameStartRunner::RunJobInner(JobCounterPtr& jobCounter)
 
 DEFINE_CLASS_JOB(FrameStartRunner, MainThreadTasks)
 {
-	m_frameData->m_inputHandler.RefreshInputs();
+	ClientFrameData& frameData = *m_frameData->GetData();
+	frameData.m_inputHandler.RefreshInputs();
 	glfwPollEvents();
-	if (glfwWindowShouldClose(m_frameData->m_window))
+	if (glfwWindowShouldClose(frameData.m_window))
 	{
 		std::cout << "Closing window" << std::endl;
-		glfwDestroyWindow(m_frameData->m_window);
+		glfwDestroyWindow(frameData.m_window);
 		glfwTerminate();
 		Jobs::Stop();
 	}
 	else
 	{
 		// Capture input state at the start of this frame
-		m_frameData->m_input = m_frameData->m_inputHandler.ExtractInputState();
+		frameData.m_input = frameData.m_inputHandler.ExtractInputState();
 	}
 }

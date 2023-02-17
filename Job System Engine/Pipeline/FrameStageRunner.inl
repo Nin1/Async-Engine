@@ -1,29 +1,39 @@
-#include "FrameStageRunner.h"
 #include "FrameData.h"
 #include <Diagnostic/Assert.h>
-#include <Jobs/Jobs.h>
-#include <atomic>
 #include <iostream>
 
-FrameStageRunner::FrameStageRunner(const char* name)
+template<typename DATA>
+FrameStageRunner<DATA>::FrameStageRunner()
+{
+	InitFrameQueue();
+}
+
+template<typename DATA>
+FrameStageRunner<DATA>::FrameStageRunner(const char* name)
 	: m_name(name)
 {
-	// Initialise frame queue
-	FrameNodePtr nodePtr = AllocateFrameNode();
-	FrameNode& node = *nodePtr.m_ptr;
+	InitFrameQueue();
+}
+
+template<typename DATA>
+void FrameStageRunner<DATA>::InitFrameQueue()
+{
+	FrameNodePtr<DATA> nodePtr = AllocateFrameNode();
+	FrameNode<DATA>& node = *nodePtr.m_ptr;
 	node.m_next.store({ nullptr, 0, -1 });
 	m_queue.m_head = m_queue.m_tail = nodePtr;
 
 }
 
 // This should only ever be called by one thread at a time
-void FrameStageRunner::QueueFrame(FrameData& frame)
+template<typename DATA>
+void FrameStageRunner<DATA>::QueueFrame(FrameData<DATA>& frame)
 {
 	// Add frame to queue
 	EnqueueFrame(frame);
 
 	// Try to start the next frame
-	FrameData* nextFrame = nullptr;
+	FrameData<DATA>* nextFrame = nullptr;
 	while (true)
 	{
 		State currentState = m_state;
@@ -63,7 +73,8 @@ void FrameStageRunner::QueueFrame(FrameData& frame)
 	}
 }
 
-void FrameStageRunner::StartFrame(FrameData& frame)
+template<typename DATA>
+void FrameStageRunner<DATA>::StartFrame(FrameData<DATA>& frame)
 {
 	m_frameData = &frame;
 
@@ -81,12 +92,14 @@ void FrameStageRunner::StartFrame(FrameData& frame)
 	Jobs::CreateJobWithDependency(FinishFrameJob, this, JOBFLAG_NONE, m_jobCounter);
 }
 
-DEFINE_CLASS_JOB(FrameStageRunner, StartFrameJob)
+template<typename DATA>
+DEFINE_TEMPLATE_CLASS_JOB(DATA, FrameStageRunner, StartFrameJob)
 {
 	RunJobInner(m_jobCounter);
 }
 
-DEFINE_CLASS_JOB(FrameStageRunner, FinishFrameJob)
+template<typename DATA>
+DEFINE_TEMPLATE_CLASS_JOB(DATA, FrameStageRunner, FinishFrameJob)
 {
 	// Queue frame in next stage
 	ASSERT(m_nextStage != nullptr);
@@ -97,7 +110,7 @@ DEFINE_CLASS_JOB(FrameStageRunner, FinishFrameJob)
 	// Attempt to start our next queued frame if we have one
 	// Transition to LOADING_FRAME in case another thread queues something after the Dequeue below returns nullptr
 	m_state = { StateEnum::LOADING_FRAME, 0 };
-	FrameData* nextFrame = nullptr;
+	FrameData<DATA>* nextFrame = nullptr;
 	DequeueFrame(&nextFrame);
 	if (nextFrame)
 	{
@@ -110,7 +123,8 @@ DEFINE_CLASS_JOB(FrameStageRunner, FinishFrameJob)
 	}
 }
 
-FrameStageRunner::FrameNodePtr FrameStageRunner::AllocateFrameNode()
+template<typename DATA>
+FrameStageRunner<DATA>::FrameNodePtr<DATA> FrameStageRunner<DATA>::AllocateFrameNode()
 {
 	constexpr char IN_USE = 1;
 	constexpr char NOT_IN_USE = 0;
@@ -125,26 +139,28 @@ FrameStageRunner::FrameNodePtr FrameStageRunner::AllocateFrameNode()
 	return { &m_freeList[index], 0, index };
 }
 
-void FrameStageRunner::DeallocateFrameNode(int index)
+template<typename DATA>
+void FrameStageRunner<DATA>::DeallocateFrameNode(int index)
 {
 	constexpr char IN_USE = 1;
 	constexpr char NOT_IN_USE = 0;
 	m_freeListInUse[index] = NOT_IN_USE;
 }
 
-void FrameStageRunner::EnqueueFrame(FrameData& frame)
+template<typename DATA>
+void FrameStageRunner<DATA>::EnqueueFrame(FrameData<DATA>& frame)
 {
 	// Allocate node from free list
-	FrameNodePtr nodePtr = AllocateFrameNode();
-	FrameNode& node = *nodePtr.m_ptr;
+	FrameNodePtr<DATA> nodePtr = AllocateFrameNode();
+	FrameNode<DATA>& node = *nodePtr.m_ptr;
 	node.m_frame = &frame;
 	node.m_next.store({ nullptr, 0 });
 
 	while (true)
 	{
 		// Load tail
-		FrameNodePtr tail = m_queue.m_tail;
-		FrameNodePtr next = tail.m_ptr->m_next;
+		FrameNodePtr<DATA> tail = m_queue.m_tail;
+		FrameNodePtr<DATA> next = tail.m_ptr->m_next;
 		// Check tail is consistent
 		if (tail == m_queue.m_tail)
 		{
@@ -178,14 +194,15 @@ void FrameStageRunner::EnqueueFrame(FrameData& frame)
 	}
 }
 
-bool FrameStageRunner::DequeueFrame(FrameData** frameOut)
+template<typename DATA>
+bool FrameStageRunner<DATA>::DequeueFrame(FrameData<DATA>** frameOut)
 {
 	while (true)
 	{
 		// Load relevant pointers
-		FrameNodePtr head = m_queue.m_head;
-		FrameNodePtr tail = m_queue.m_tail;
-		FrameNodePtr next = head.m_ptr->m_next;
+		FrameNodePtr<DATA> head = m_queue.m_head;
+		FrameNodePtr<DATA> tail = m_queue.m_tail;
+		FrameNodePtr<DATA> next = head.m_ptr->m_next;
 		// Is head consistent?
 		if (head == m_queue.m_head)
 		{

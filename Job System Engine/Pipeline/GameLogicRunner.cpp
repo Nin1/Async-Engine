@@ -17,15 +17,16 @@ void GameLogicRunner::Init()
 void GameLogicRunner::RunJobInner(JobCounterPtr& jobCounter)
 {
 	// Run game logic here (scripts, simulation, etc.)
-	ASSERT(m_frameData->m_stage == FrameStage::FRAME_START);
-	m_frameData->m_stage = FrameStage::GAME_LOGIC;
+	ClientFrameData& frameData = *m_frameData->GetData();
+	ASSERT(frameData.m_stage == FrameStage::FRAME_START);
+	frameData.m_stage = FrameStage::GAME_LOGIC;
 
 	// m_scene.RunFixedUpdate(); // Loop this however many times is needed for the fixed timestep
 	// m_scene.RunFrameUpdate(); // Run once per frame
 	// m_scene.ExtractFrameData(); // Returns data needed to render the scene
 
 	// Move camera
-	InputState& input = m_frameData->m_input;
+	InputState& input = frameData.m_input;
 	glm::vec3 moveDir = glm::vec3(0.0f);
 	if (input.GetKeyHeld(GLFW_KEY_W))
 	{
@@ -61,6 +62,6 @@ void GameLogicRunner::RunJobInner(JobCounterPtr& jobCounter)
 
 
 	// Extract data into m_frameData
-	m_frameData->m_camera = m_camera.GetFrameData();
-	m_frameData->m_modelsToRender.push_back({ m_testModel, m_testModelTransform.GetTRS() });
+	frameData.m_camera = m_camera.GetFrameData();
+	frameData.m_modelsToRender.push_back({ m_testModel, m_testModelTransform.GetTRS() });
 }

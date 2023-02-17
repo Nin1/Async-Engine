@@ -1,9 +1,10 @@
 #pragma once
 #include "FrameStageRunner.h"
+#include "../ClientFrameData.h"
 #include <Graphics/Shader/ShaderProgram.h>
 
 
-class OpenGLRenderRunner : public FrameStageRunner
+class OpenGLRenderRunner : public FrameStageRunner<ClientFrameData>
 {
 public:
 	OpenGLRenderRunner() : FrameStageRunner("GPU Execution") { }

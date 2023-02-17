@@ -1,9 +1,10 @@
 #pragma once
 #include "FrameStageRunner.h"
+#include "../ClientFrameData.h"
 #include <Graphics/Camera/Camera.h>
 #include <Graphics/Model/ModelAsset.h>
 
-class GameLogicRunner : public FrameStageRunner
+class GameLogicRunner : public FrameStageRunner<ClientFrameData>
 {
 public:
 	GameLogicRunner() : FrameStageRunner("Game Logic") { }

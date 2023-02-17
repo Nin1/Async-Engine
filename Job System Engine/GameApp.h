@@ -1,8 +1,10 @@
 #pragma once
+#include <GL/glew.h>
 #include "Pipeline/FramePipeline.h"
 #include "Input.h"
 #include "Scene.h"
 #include "Pipeline/FrameData.h"
+#include "ClientFrameData.h"
 #include <Jobs/JobDecl.h>
 
 class GameApp
@@ -28,11 +30,9 @@ private:
 private:
 	Input m_input;
 	Scene m_scene;
-	FramePipeline m_pipeline;
+	FramePipeline<ClientFrameData> m_pipeline;
 
 	// TODO: Singleton
 	GLFWwindow* m_window;
-
-	std::vector<FrameData> m_frames;
 };
 
