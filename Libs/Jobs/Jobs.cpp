@@ -228,6 +228,15 @@ void Jobs::CreateJobWithDependencyAndCount(JobFunc func, void* data, uint8_t fla
 	PushJob(std::move(jobPtr), BIT_IS_SET(flags, JOBFLAG_MAINTHREAD));
 }
 
+void Jobs::JoinUntilCompleted(const JobCounterPtr& dependencyCounter)
+{
+	while (dependencyCounter.Get().m_numJobs > 0)
+	{
+		ExecuteOuter(std::move(GetJobFromThisThread(m_jobQueues)));
+	}
+	DeallocateCounter(dependencyCounter);
+}
+
 JobPtr Jobs::AllocateJob(JobFunc func, void* data, uint8_t flags)
 {
 	// Search the job ring-buffer to find the first available job
@@ -282,88 +291,97 @@ JobPtr Jobs::GetMainThreadJob()
 	return GetJobInner(m_mainThreadJobQueues);
 }
 
+JobPtr Jobs::GetJobFromThisThread(std::vector<JobStack>& queues)
+{
+	JobStack& jobQueue = queues[m_thisThreadIndex];
+	// Array to hold jobs that can't be run yet
+	std::array<JobPtr, MAX_JOBS_PER_THREAD> deferredJobs;
+	int numDeferredJobs = 0;
+	// Since owning thread is FIFO and stealing threads are LIFO, jobs can get stuck at the bottom of the queue if other threads are busy (or there is only one thread).
+	// Because of this, we occasionally steal even if we are the owning thread.
+	JobPtr job = jobQueue.ShouldOwningThreadSteal() ? jobQueue.Steal() : jobQueue.Pop();
+	while (job.IsValid())
+	{
+		// Check that this job satisfies all the conditions needed to execute (no dependencies or children)
+		if (!job.HasDependencies() && !job.HasChildren())
+		{
+			// This job can run - If it needs disk access, see if we can acquire it
+			if (job.m_job->NeedsDiskActivity())
+			{
+				if (m_thisThreadCanReadDisk && _InterlockedCompareExchange8(&m_diskJobInProgress, CHAR_TRUE, CHAR_FALSE) == CHAR_FALSE)
+				{
+					// We can execute this job
+					break;
+				}
+			}
+			else
+			{
+				// We can execute this job
+				break;
+			}
+		}
+
+		// We can't execute this job yet - put it aside and pick the next job
+		deferredJobs[numDeferredJobs] = job;
+		numDeferredJobs++;
+		job = jobQueue.ShouldOwningThreadSteal() ? jobQueue.Steal() : jobQueue.Pop();
+	}
+	// Push jobs with dependencies back on queue
+	for (int i = 0; i < numDeferredJobs; ++i)
+	{
+		jobQueue.Push(std::move(deferredJobs[i]));
+	}
+	return job;
+}
+
+JobPtr Jobs::GetJobFromOtherThread(int threadIndex, std::vector<JobStack>& queues)
+{
+	JobStack& jobQueue = queues[threadIndex];
+	// Can only try to steal one job from other threads since Pop/Push cannot be called on them
+	JobPtr job = jobQueue.Steal();
+	if (job.IsValid())
+	{
+		if (job.HasDependencies() || job.HasChildren())
+		{
+			// Job is still waiting for dependencies or has children that need to run - Put it back (on this thread now)
+			queues[m_thisThreadIndex].Push(std::move(job));
+			job = JobPtr();
+		}
+		else if (job.m_job->NeedsDiskActivity())
+		{
+			if (!m_thisThreadCanReadDisk || _InterlockedCompareExchange8(&m_diskJobInProgress, CHAR_TRUE, CHAR_FALSE) == CHAR_TRUE)
+			{
+				// This job requires disk access but we can't get disk access right now. Put it back (on this thread now)
+				queues[m_thisThreadIndex].Push(std::move(job));
+				job = JobPtr();
+			}
+		}
+	}
+	return job;
+}
+
 JobPtr Jobs::GetJobInner(std::vector<JobStack>& queues)
 {
 	int threadIndex = m_thisThreadIndex;
-	bool checkedEveryQueue = false;
 	JobPtr job;
 
-
 	// Attempt pop or steal from each queue until we find a job that isn't waiting for any dependency. Give up after checking every queue.
-	while (!job.IsValid() && !checkedEveryQueue)
+	do
 	{
-		JobStack& jobQueue = queues[threadIndex];
 		if (threadIndex == m_thisThreadIndex)
 		{
-			// Array to hold jobs that can't be run yet
-			std::array<JobPtr, MAX_JOBS_PER_THREAD> deferredJobs;
-			int numDeferredJobs = 0;
-			job = jobQueue.Pop();
-			while (job.IsValid())
-			{
-				// Check that this job satisfies all the conditions needed to execute (no dependencies or children)
-				if (!job.HasDependencies() && !job.HasChildren())
-				{
-					// This job can run - If it needs disk access, see if we can acquire it
-					if (job.m_job->NeedsDiskActivity())
-					{
-						if (m_thisThreadCanReadDisk && _InterlockedCompareExchange8(&m_diskJobInProgress, CHAR_TRUE, CHAR_FALSE) == CHAR_FALSE)
-						{
-							// We can execute this job
-							break;
-						}
-					}
-					else
-					{
-						// We can execute this job
-						break;
-					}
-				}
-
-				// We can't execute this job yet - put it aside and pick the next job
-				deferredJobs[numDeferredJobs] = job;
-				numDeferredJobs++;
-				job = jobQueue.Pop();
-			}
-			// Push jobs with dependencies back on queue
-			for (int i = 0; i < numDeferredJobs; ++i)
-			{
-				queues[m_thisThreadIndex].Push(std::move(deferredJobs[i]));
-			}
+			job = GetJobFromThisThread(queues);
 		}
 		else
 		{
-			// Can only try to steal one job from other threads since Pop/Push cannot be called on them
-			job = jobQueue.Steal();
-			if (job.IsValid())
-			{
-				if (job.HasDependencies() || job.HasChildren())
-				{
-					// Job is still waiting for dependencies or has children that need to run - Put it back (on this thread now)
-					queues[m_thisThreadIndex].Push(std::move(job));
-					job = JobPtr();
-				}
-				else if (job.m_job->NeedsDiskActivity())
-				{
-					if (!m_thisThreadCanReadDisk || _InterlockedCompareExchange8(&m_diskJobInProgress, CHAR_TRUE, CHAR_FALSE) == CHAR_TRUE)
-					{
-						// This job requires disk access but we can't get disk access right now. Put the job back.
-						queues[m_thisThreadIndex].Push(std::move(job));
-						job = JobPtr();
-					}
-				}
-			}
+			job = GetJobFromOtherThread(threadIndex, queues);
 		}
 
 		// Check next thread
-		threadIndex = (threadIndex + 1) % m_jobQueues.size();
-
-		// Give up if we've searched every thread
-		if (threadIndex == m_thisThreadIndex)
-		{
-			checkedEveryQueue = true;
-		}
+		threadIndex = (threadIndex + 1) % queues.size();
 	}
+	while (!job.IsValid() && threadIndex != m_thisThreadIndex);
+
 	return job;
 }
 

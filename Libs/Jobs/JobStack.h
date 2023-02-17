@@ -49,6 +49,7 @@ public:
             // at t.
             if (t != b)
             {
+                m_numPops++;
                 return job;
             }
 
@@ -64,6 +65,7 @@ public:
 
             // Last remaining job successfully popped
             m_top = m_bottom;
+            m_numPops++;
             return job;
         }
 
@@ -93,11 +95,22 @@ public:
             }
 
             // We have guaranteed a successful steal without interference from another thread
+            m_numSteals++;
             return job;
         }
 
         // Stack is empty
         return JobPtr();
+    }
+
+    /** Returns true if there have been enough pops since the last steal, such that there may be old jobs stuck at the bottom of the stack that actioning. Call only from the owning thread. */
+    bool ShouldOwningThreadSteal()
+    {
+        // Jobs could be stolen concurrently here, but the result would be that we just try to steal from an empty stack and fail.
+        // The owning thread should steal if:
+        //  - The stack is larger than 1 item
+        //  - Nothing has been stolen yet OR The number of pops is at-least twice the number of steals
+        return (m_top - m_bottom > 1) && (m_numSteals == 0 || (m_numPops / m_numSteals >= 2));
     }
 
 private:
@@ -109,6 +122,12 @@ private:
     int64_t m_top = 0;
     /** Mask used to wrap the top and bottom indices when they are outside the size bound. This requires the size to be a power-of-two. */
     unsigned int m_mask;
+    /**
+     * Counters for the number of pops (LIFO) vs the number of steals (FIFO), to make sure old jobs still get actioned even when the queue keeps filling up.
+     * Don't really care about making these or the related checks atomic.
+     */
+    uint64_t m_numPops = 0;
+    uint64_t m_numSteals = 0;
     /** List of jobs */
     std::vector<JobPtr> m_jobs;
 };

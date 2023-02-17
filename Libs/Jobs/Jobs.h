@@ -25,7 +25,7 @@ class Jobs
 public:
 	/** Initialise job system, automatically detecting the number of threads and running mainJob on one of them. */
 	Jobs(JobFunc mainJob, void* mainJobData);
-	/** Initialise job system with a single thread, and running mainJob on it. */
+	/** Initialise job system with the given number of threads, and running mainJob on this thread. */
 	Jobs(int numThreads, JobFunc mainJob, void* mainJobData) { Init(numThreads, mainJob, mainJobData); }
 	/** Stops jobs from running */
 	static void Stop() { m_running = false; }
@@ -41,6 +41,9 @@ public:
 	static void CreateJobAndCount(JobFunc func, void* data, uint8_t flags, JobCounterPtr& jobCounter);
 	/** Create a job that will add to jobCounter when created, and decrement it when complete, but it will only execute once dependencyCounter is 0 */
 	static void CreateJobWithDependencyAndCount(JobFunc func, void* data, uint8_t flags, JobCounterPtr& dependencyCounter, JobCounterPtr& jobCounter);
+
+	/** Executes jobs exclusively from this thread's queue until the given counter is 0. The counter will then be deallocated automatically. */
+	static void JoinUntilCompleted(const JobCounterPtr& dependencyCounter);
 
 	static void PushJob(JobPtr&& jobPtr, bool mainThread);
 
@@ -68,6 +71,10 @@ private:
 	static void DeallocateJob(JobPtr& job);
 	/** Returns a Job to be actioned. */
 	static JobPtr GetJob();
+	/** Returns a Job from this thread to be actioned. */
+	static JobPtr GetJobFromThisThread(std::vector<JobStack>& queues);
+	/** Returns a Job from this thread to be actioned. */
+	static JobPtr GetJobFromOtherThread(int threadIndex, std::vector<JobStack>& queues);
 	/** Returns a Job to be actioned on the main thread. */
 	static JobPtr GetMainThreadJob();
 	/** Helper method for GetJob() and GetMainThreadJob(). */

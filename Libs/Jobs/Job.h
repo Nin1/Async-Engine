@@ -27,6 +27,8 @@ struct JobCounterPtr
 	bool IsValid() const { return m_counter != nullptr && m_index >= 0; }
 	/** Returns the JobCounter. Make sure it is valid before calling this. */
 	JobCounter& Get() { return *m_counter; }
+	/** Returns the JobCounter. Make sure it is valid before calling this. */
+	JobCounter& Get() const { return *m_counter; }
 
 	/** Pointer to the counter */
 	JobCounter* m_counter;

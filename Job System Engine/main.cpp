@@ -21,7 +21,7 @@ JOB_FUNCTION_END()
 int main()
 {
 	GameApp app;
-	Jobs jobs(StartApp, &app);
+	Jobs jobs(6, StartApp, &app);
 
 	return 0;
 }
