@@ -109,8 +109,8 @@ public:
         // Jobs could be stolen concurrently here, but the result would be that we just try to steal from an empty stack and fail.
         // The owning thread should steal if:
         //  - The stack is larger than 1 item
-        //  - Nothing has been stolen yet OR The number of pops is at-least twice the number of steals
-        return (m_top - m_bottom > 1) && (m_numSteals == 0 || (m_numPops / m_numSteals >= 2));
+        //  - The number of pops is at-least 4-times the number of steals.
+        return (m_top > (m_bottom + 1)) && (m_numSteals * POPS_PER_STEAL < m_numPops);
     }
 
 private:
@@ -128,6 +128,7 @@ private:
      */
     uint64_t m_numPops = 0;
     uint64_t m_numSteals = 0;
+    static constexpr uint8_t POPS_PER_STEAL = 4;
     /** List of jobs */
     std::vector<JobPtr> m_jobs;
 };

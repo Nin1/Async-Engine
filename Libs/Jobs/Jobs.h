@@ -98,12 +98,17 @@ private:
 	//static constexpr int MAX_PAUSED_JOBS_PER_THREAD = 128;
 
 	// Ring-buffer for allocating jobs per thread
-	static thread_local std::array<Job, MAX_JOBS_PER_THREAD> m_jobs;
+	static thread_local std::array<Job, MAX_JOBS_PER_THREAD>& m_jobs;
 	static std::vector<std::array<bool, MAX_JOBS_PER_THREAD>> m_jobInUse;	// per-thread, accessed from other threads
 	static thread_local uint32_t m_jobBufferHead;
 
+	// Heap-allocated large buffers
+	static thread_local std::unique_ptr<std::array<Job, MAX_JOBS_PER_THREAD>> m_jobsUniquePtr;
+	static thread_local std::unique_ptr<std::array<JobCounter, MAX_COUNTERS_PER_THREAD>> m_countersUniquePtr;
+	static thread_local std::unique_ptr<std::array<JobPtr, MAX_JOBS_PER_THREAD>> m_deferredJobsUniquePtr;
+
 	// Ring-buffer for allocating counters
-	static thread_local std::array<JobCounter, MAX_COUNTERS_PER_THREAD> m_counters;
+	static thread_local std::array<JobCounter, MAX_COUNTERS_PER_THREAD>& m_counters;
 	static std::vector<std::array<bool, MAX_COUNTERS_PER_THREAD>> m_counterInUse;	// per-thread, accessed from other threads
 	static thread_local uint32_t m_counterBufferHead;
 
@@ -114,9 +119,12 @@ private:
 	static std::vector<JobStack> m_jobQueues;
 	// Job queues per thread, for execution on the main thread only. The main thread will steal these jobs.
 	static std::vector<JobStack> m_mainThreadJobQueues;
+	// Per thread, a temporary buffer for deferring jobs that can't be executed yet. 
+	static thread_local std::array<JobPtr, MAX_JOBS_PER_THREAD>& m_deferredJobs;
 	// Threads
 	static std::vector<std::thread> m_threads;
-	static thread_local int m_thisThreadIndex;
+	static thread_local uint8_t m_thisThreadIndex;
+	static uint8_t m_maxThreadIndex;
 	static bool m_running;
 	// The job currently running on this thread
 	static thread_local Job* m_activeJob;

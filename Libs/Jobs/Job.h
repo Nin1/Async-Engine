@@ -24,9 +24,7 @@ struct JobCounterPtr
 {
 	JobCounterPtr() : m_counter(nullptr), m_index(-1) { }
 	JobCounterPtr(JobCounter& counter, int index, int thread) : m_counter(&counter), m_index(index), m_parentThread(thread) { }
-	bool IsValid() const { return m_counter != nullptr && m_index >= 0; }
-	/** Returns the JobCounter. Make sure it is valid before calling this. */
-	JobCounter& Get() { return *m_counter; }
+	inline bool IsValid() const { return m_index >= 0; }
 	/** Returns the JobCounter. Make sure it is valid before calling this. */
 	JobCounter& Get() const { return *m_counter; }
 
@@ -57,7 +55,7 @@ struct Job
 	/** Count of the number of children this job has created that haven't yet finished. */
 	std::atomic<int> m_children = 0;
 	/** Returns true if this job has completed */
-	inline bool IsComplete() const { return m_func == nullptr && m_children.load() == 0; }
+	inline bool IsComplete() const { return m_func == nullptr && m_children == 0; }
 	/** Returns true if this job asked for disk reads */
 	inline bool NeedsDiskActivity() const { return (m_flags & JOBFLAG_DISKACCESS) != 0; }
 	// TODO: Pad to cache line?
@@ -69,7 +67,7 @@ struct JobPtr
 	JobPtr() : m_job(nullptr), m_index(-1) { }
 	JobPtr(Job& job, int index, int thread) : m_job(&job), m_index(index), m_parentThread(thread) { }
 
-	inline bool IsValid() const { return m_job != nullptr && m_index >= 0; }
+	inline bool IsValid() const { return m_index >= 0; }
 	inline bool HasDependencies() const { return m_job && m_job->m_waitCounter.IsValid() && m_job->m_waitCounter.m_counter->m_numJobs > 0; }
 	inline bool HasChildren() const { return m_job && m_job->m_children > 0; }
 

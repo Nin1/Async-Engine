@@ -7,11 +7,18 @@
 
 #define BIT_IS_SET(flags, mask) (flags & mask) != 0
 
-thread_local std::array<Job, Jobs::MAX_JOBS_PER_THREAD> Jobs::m_jobs;
+// Heap-allocated buffers
+thread_local std::unique_ptr<std::array<Job, Jobs::MAX_JOBS_PER_THREAD>> Jobs::m_jobsUniquePtr = std::make_unique<std::array<Job, MAX_JOBS_PER_THREAD>>();
+thread_local std::unique_ptr<std::array<JobCounter, Jobs::MAX_COUNTERS_PER_THREAD>> Jobs::m_countersUniquePtr = std::make_unique<std::array<JobCounter, MAX_COUNTERS_PER_THREAD>>();
+thread_local std::unique_ptr<std::array<JobPtr, Jobs::MAX_JOBS_PER_THREAD>> Jobs::m_deferredJobsUniquePtr = std::make_unique<std::array<JobPtr, MAX_JOBS_PER_THREAD>>();
+// Heap-allocated buffer references
+thread_local std::array<Job, Jobs::MAX_JOBS_PER_THREAD>& Jobs::m_jobs = *m_jobsUniquePtr;
+thread_local std::array<JobPtr, Jobs::MAX_JOBS_PER_THREAD>& Jobs::m_deferredJobs = *m_deferredJobsUniquePtr;
+thread_local std::array<JobCounter, Jobs::MAX_COUNTERS_PER_THREAD>& Jobs::m_counters = *m_countersUniquePtr;
+
 std::vector<std::array<bool, Jobs::MAX_JOBS_PER_THREAD>> Jobs::m_jobInUse;	// per-thread, accessed from other threads
 thread_local uint32_t Jobs::m_jobBufferHead = 0;
 
-thread_local std::array<JobCounter, Jobs::MAX_COUNTERS_PER_THREAD> Jobs::m_counters;
 std::vector<std::array<bool, Jobs::MAX_COUNTERS_PER_THREAD>> Jobs::m_counterInUse;	// per-thread, accessed from other threads
 thread_local uint32_t Jobs::m_counterBufferHead = 0;
 // Job queue per thread
@@ -20,7 +27,8 @@ std::vector<JobStack> Jobs::m_jobQueues;
 std::vector<JobStack> Jobs::m_mainThreadJobQueues;
 // Threads
 std::vector<std::thread> Jobs::m_threads;
-thread_local int Jobs::m_thisThreadIndex;
+thread_local uint8_t Jobs::m_thisThreadIndex;
+uint8_t Jobs::m_maxThreadIndex;
 thread_local Job* Jobs::m_activeJob;
 // Misc
 bool Jobs::m_running = true;
@@ -38,7 +46,7 @@ void Jobs::Init(int numThreads, JobFunc mainJob, void* mainJobData)
 {
 	// Set up job system
 	m_running = true;
-	int maxThreadIndex = numThreads - 1;
+	m_maxThreadIndex = numThreads - 1;
 
 	// Initialise shared vectors
 	m_jobInUse.resize(numThreads);
@@ -48,7 +56,7 @@ void Jobs::Init(int numThreads, JobFunc mainJob, void* mainJobData)
 	m_threads.reserve(numThreads);
 
 	// Kick off all threads except one
-	for (int i = 0; i < maxThreadIndex; ++i)
+	for (int i = 0; i < m_maxThreadIndex; ++i)
 	{
 		m_jobQueues.emplace_back(MAX_JOBS_PER_THREAD);
 		m_mainThreadJobQueues.emplace_back(MAX_JOBS_PER_THREAD);
@@ -60,7 +68,7 @@ void Jobs::Init(int numThreads, JobFunc mainJob, void* mainJobData)
 	// Turn this thread into the final job thread
 	m_jobQueues.emplace_back(MAX_JOBS_PER_THREAD);
 	m_mainThreadJobQueues.emplace_back(MAX_JOBS_PER_THREAD);
-	MainThread(maxThreadIndex, mainJob, mainJobData);
+	MainThread(m_maxThreadIndex, mainJob, mainJobData);
 
 	// Wait for all threads to finish
 	for (auto& thread : m_threads)
@@ -119,58 +127,56 @@ void Jobs::MainThread(int threadIndex, JobFunc mainJob, void* mainJobData)
 
 void Jobs::ExecuteOuter(JobPtr&& jobPtr)
 {
-	if (jobPtr.IsValid())
-	{
-		Job& job = jobPtr.Get();
-		Execute(job);
-
-		if (job.IsComplete())
-		{
-			// Release disk access
-			if (job.NeedsDiskActivity())
-			{
-				m_diskJobInProgress = false;
-			}
-
-			// Decrement parent's children counter
-			if (job.m_parent)
-			{
-				job.m_parent->m_children--;
-			}
-
-			// Decrement dependency counter
-			if (job.m_decCounter.IsValid())
-			{
-				_ASSERT(job.m_decCounter.Get().m_numJobs > 0);
-				job.m_decCounter.Get().m_numJobs--;
-			}
-
-			// Decrement dependent counter
-			JobCounterPtr& dependantsCounter = job.m_waitCounter;
-			if (dependantsCounter.IsValid())
-			{
-				_ASSERT(job.m_waitCounter.Get().m_numDependants > 0);
-				--dependantsCounter.m_counter->m_numDependants;
-				if (dependantsCounter.m_counter->m_numDependants == 0)
-				{
-					DeallocateCounter(job.m_waitCounter);
-				}
-			}
-
-			// Free job
-			DeallocateJob(jobPtr);
-		}
-		else
-		{
-			// Job is incomplete (because it has children). Push it back to the queue to check again later.
-			m_jobQueues[m_thisThreadIndex].Push(std::move(jobPtr));
-		}
-	}
-	else
+	if (!jobPtr.IsValid())
 	{
 		// Didn't get a job - yield for a bit
 		_YIELD_PROCESSOR();
+		return;
 	}
+
+	Job& job = jobPtr.Get();
+	Execute(job);
+
+	if (!job.IsComplete())
+	{
+		// Job is incomplete (because it has children). Push it back to the queue to check again later.
+		m_jobQueues[m_thisThreadIndex].Push(std::move(jobPtr));
+		return;
+	}
+
+	// Release disk access
+	if (job.NeedsDiskActivity())
+	{
+		m_diskJobInProgress = false;
+	}
+
+	// Decrement parent's children counter
+	if (job.m_parent)
+	{
+		job.m_parent->m_children--;
+	}
+
+	// Decrement dependency counter
+	if (job.m_decCounter.IsValid())
+	{
+		_ASSERT(job.m_decCounter.Get().m_numJobs > 0);
+		job.m_decCounter.Get().m_numJobs--;
+	}
+
+	// Decrement dependent counter
+	JobCounterPtr& dependantsCounter = job.m_waitCounter;
+	if (dependantsCounter.IsValid())
+	{
+		_ASSERT(job.m_waitCounter.Get().m_numDependants > 0);
+		--dependantsCounter.m_counter->m_numDependants;
+		if (dependantsCounter.m_counter->m_numDependants == 0)
+		{
+			DeallocateCounter(job.m_waitCounter);
+		}
+	}
+
+	// Free job
+	DeallocateJob(jobPtr);
 }
 
 void Jobs::Execute(Job& job)
@@ -291,15 +297,27 @@ JobPtr Jobs::GetMainThreadJob()
 	return GetJobInner(m_mainThreadJobQueues);
 }
 
+inline JobPtr PopOrStealJobFromThisThread(JobStack& jobQueue)
+{
+	if (jobQueue.ShouldOwningThreadSteal())
+	{
+		return jobQueue.Steal();
+	}
+	else
+	{
+		return jobQueue.Pop();
+	}
+}
+
 JobPtr Jobs::GetJobFromThisThread(std::vector<JobStack>& queues)
 {
 	JobStack& jobQueue = queues[m_thisThreadIndex];
 	// Array to hold jobs that can't be run yet
-	std::array<JobPtr, MAX_JOBS_PER_THREAD> deferredJobs;
 	int numDeferredJobs = 0;
 	// Since owning thread is FIFO and stealing threads are LIFO, jobs can get stuck at the bottom of the queue if other threads are busy (or there is only one thread).
 	// Because of this, we occasionally steal even if we are the owning thread.
-	JobPtr job = jobQueue.ShouldOwningThreadSteal() ? jobQueue.Steal() : jobQueue.Pop();
+	JobPtr job = PopOrStealJobFromThisThread(jobQueue);
+
 	while (job.IsValid())
 	{
 		// Check that this job satisfies all the conditions needed to execute (no dependencies or children)
@@ -322,14 +340,14 @@ JobPtr Jobs::GetJobFromThisThread(std::vector<JobStack>& queues)
 		}
 
 		// We can't execute this job yet - put it aside and pick the next job
-		deferredJobs[numDeferredJobs] = job;
+		m_deferredJobs[numDeferredJobs] = job;
 		numDeferredJobs++;
-		job = jobQueue.ShouldOwningThreadSteal() ? jobQueue.Steal() : jobQueue.Pop();
+		job = PopOrStealJobFromThisThread(jobQueue);
 	}
 	// Push jobs with dependencies back on queue
 	for (int i = 0; i < numDeferredJobs; ++i)
 	{
-		jobQueue.Push(std::move(deferredJobs[i]));
+		jobQueue.Push(std::move(m_deferredJobs[i]));
 	}
 	return job;
 }
@@ -339,22 +357,23 @@ JobPtr Jobs::GetJobFromOtherThread(int threadIndex, std::vector<JobStack>& queue
 	JobStack& jobQueue = queues[threadIndex];
 	// Can only try to steal one job from other threads since Pop/Push cannot be called on them
 	JobPtr job = jobQueue.Steal();
-	if (job.IsValid())
+	if (!job.IsValid())
 	{
-		if (job.HasDependencies() || job.HasChildren())
+		return job;
+	}
+	if (job.HasDependencies() || job.HasChildren())
+	{
+		// Job is still waiting for dependencies or has children that need to run - Put it back (on this thread now)
+		queues[m_thisThreadIndex].Push(std::move(job));
+		job = JobPtr();
+	}
+	else if (job.m_job->NeedsDiskActivity())
+	{
+		if (!m_thisThreadCanReadDisk || _InterlockedCompareExchange8(&m_diskJobInProgress, CHAR_TRUE, CHAR_FALSE) == CHAR_TRUE)
 		{
-			// Job is still waiting for dependencies or has children that need to run - Put it back (on this thread now)
+			// This job requires disk access but we can't get disk access right now. Put it back (on this thread now)
 			queues[m_thisThreadIndex].Push(std::move(job));
 			job = JobPtr();
-		}
-		else if (job.m_job->NeedsDiskActivity())
-		{
-			if (!m_thisThreadCanReadDisk || _InterlockedCompareExchange8(&m_diskJobInProgress, CHAR_TRUE, CHAR_FALSE) == CHAR_TRUE)
-			{
-				// This job requires disk access but we can't get disk access right now. Put it back (on this thread now)
-				queues[m_thisThreadIndex].Push(std::move(job));
-				job = JobPtr();
-			}
 		}
 	}
 	return job;
@@ -378,7 +397,7 @@ JobPtr Jobs::GetJobInner(std::vector<JobStack>& queues)
 		}
 
 		// Check next thread
-		threadIndex = (threadIndex + 1) % queues.size();
+		threadIndex = threadIndex < m_maxThreadIndex ? (threadIndex + 1) : 0;
 	}
 	while (!job.IsValid() && threadIndex != m_thisThreadIndex);
 
