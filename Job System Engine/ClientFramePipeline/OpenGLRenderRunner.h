@@ -11,7 +11,7 @@ public:
 
 	virtual void Init() override;
 protected:
-	virtual void RunJobInner(JobCounterPtr& jobCounter) override;
+	virtual void RunJobInner() override;
 
 private:
 	DECLARE_CLASS_JOB(OpenGLRenderRunner, MainThreadTasks);

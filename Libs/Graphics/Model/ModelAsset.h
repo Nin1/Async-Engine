@@ -16,9 +16,8 @@ public:
 	/** Kick off a load job to load this asset from a file. Poll GetLoadState() periodically to check the status. */
 	void Load(const char* filename);
 	/** Sets this model's data from pre-loaded data. */
-	void Set(std::shared_ptr<Mesh>& mesh) { /* NYI */ }
-	/** Uploads the mesh to VRAM. Only call from the main thread. Only valid if GetLoadState() == LOADED.
-	  * This object's shared_ptr to the mesh will be cleared after this. */
+	void Set(std::shared_ptr<Mesh>& mesh) { m_mesh = mesh; m_state = LoadState::LOADED; }
+	/** Uploads the mesh to VRAM. Only call from the main thread. Only valid if GetLoadState() == LOADED. */
 	void Upload();
 
 	void PrepareForRendering() const;
@@ -26,6 +25,8 @@ public:
 	/** Returns the vertex buffer ID. Only valid if GetLoadState() == UPLOADED */
 	uint32_t GetVertexBufferID();
 	uint32_t GetVertexCount();
+	/** Returns the mesh data */
+	const std::shared_ptr<Mesh>& GetMesh() { return m_mesh; }
 
 	/** Returns the current state of this asset. This can be called at any time. */
 	LoadState GetLoadState() const { return m_state; }
@@ -38,7 +39,7 @@ private:
 	LoadState m_state = LoadState::UNLOADED;
 	/** Name of file to read */
 	std::string m_filename;
-	/** Mesh data. This is only once loaded, and before upload. */
+	/** Mesh data. Only valid if m_state >= LOADED */
 	std::shared_ptr<Mesh> m_mesh;
 
 	/** GLuint vertexBufferID. Only valid if m_state == UPLOADED */

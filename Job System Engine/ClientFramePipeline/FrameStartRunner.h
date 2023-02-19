@@ -8,7 +8,7 @@ class FrameStartRunner : public FrameStageRunner<ClientFrameData>
 public:
 	FrameStartRunner() : FrameStageRunner("Frame Start") { }
 protected:
-	virtual void RunJobInner(JobCounterPtr& jobCounter) override;
+	virtual void RunJobInner() override;
 
 private:
 	DECLARE_CLASS_JOB(FrameStartRunner, MainThreadTasks);

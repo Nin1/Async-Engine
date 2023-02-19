@@ -4,6 +4,10 @@
 #include <array>
 #include <thread>
 #include <vector>
+#include <functional>
+
+// Debug to enable per-thread metric collection about jobs
+#define JOBS_COLLECT_METRICS 0
 
 /*
 struct PausedJob
@@ -19,6 +23,14 @@ struct PausedJob
 };
 */
 
+/**
+ * Arguments are:
+ * T*: Pointer to first element of this chunk
+ * size_t: Number of elements in this chunk
+ * size_t: Index in the original array that this chunk starts at
+ */
+template<typename T>
+using ParallelForFunc = std::function<void(T*, size_t, size_t)>;
 
 class Jobs
 {
@@ -47,21 +59,59 @@ public:
 
 	static void PushJob(JobPtr&& jobPtr, bool mainThread);
 
-	// These probably need fibers to store and restore stacks and function pointers
-	/** Creates a counter used for pausing a job until its current job is complete */
-	//std::atomic<int>& CreateYieldCounter();
-	/** Pause the current job and free this thread until the counter is 0 */
-	//void YieldUntilCounter(std::atomic<int>& counter);
-
 	bool IsRunning() { return m_running; }
+
+private:
+	/** Parallel-For data structure for meta job */
+	template<typename T>
+	struct ParallelForJobData
+	{
+		T* m_data;
+		size_t m_count;
+		size_t m_startIndex;
+		ParallelForFunc<T>* m_func;
+	};
+
+	/** Meta job that executes one chunk of a parallel-for */
+	template<typename T>
+	static void ParallelForJob(void* jobData)
+	{
+		const ParallelForJobData<T>* data = static_cast<const ParallelForJobData<T>*>(jobData);
+		(*data->m_func)(data->m_data, data->m_count, data->m_startIndex);
+	}
+
+public:
+	/** Creates a number of individual jobs that will process chunks of the given data as a parallel-for-loop */
+	template<typename T>
+	static void ParallelFor(T* dataStart, size_t count, size_t chunkSize, ParallelForFunc<T> func)
+	{
+		T* dataEnd = dataStart + count;
+		T* dataCurrent = dataStart;
+		JobCounterPtr counter = GetNewJobCounter();
+		// ParallelForJobData objects must persist so the jobData pointer points at valid data
+		std::vector<ParallelForJobData<T>> jobData;
+		int dataIndex = 0;
+		jobData.reserve((count / chunkSize) + 1);
+		// Spawn multiple jobs that each operate on a different chunk of data
+		while (dataCurrent != dataEnd)
+		{
+			size_t thisChunkSize = std::min(size_t(dataEnd - dataCurrent), chunkSize);
+			jobData.push_back({dataCurrent, thisChunkSize, size_t(dataCurrent - dataStart), &func});
+			CreateJobAndCount(ParallelForJob<T>, &jobData[dataIndex], JOBFLAG_NONE | JOBFLAG_DEBUG, counter);
+			dataIndex++;
+			dataCurrent += thisChunkSize;
+		}
+		// Execute
+		JoinUntilCompleted(counter);
+	}
 
 private:
 	void Init(int numThreads, JobFunc mainJob, void* mainJobData);
 
 	/** Main method per non-main thread */
-	static void WorkerThread(int threadIndex);
+	static void WorkerThread(uint8_t threadIndex);
 	/** Main method for the main thread */
-	static void MainThread(int threadIndex, JobFunc mainJob, void* mainJobData);
+	static void MainThread(uint8_t threadIndex, JobFunc mainJob, void* mainJobData);
 	/** Outer method for job execution */
 	static void ExecuteOuter(JobPtr&& jobPtr);
 
@@ -72,7 +122,7 @@ private:
 	/** Returns a Job to be actioned. */
 	static JobPtr GetJob();
 	/** Returns a Job from this thread to be actioned. */
-	static JobPtr GetJobFromThisThread(std::vector<JobStack>& queues);
+	static JobPtr GetJobFromThisThread(std::vector<JobStack>& queues, bool popOnly);
 	/** Returns a Job from this thread to be actioned. */
 	static JobPtr GetJobFromOtherThread(int threadIndex, std::vector<JobStack>& queues);
 	/** Returns a Job to be actioned on the main thread. */
@@ -95,8 +145,6 @@ private:
 	static constexpr int MAX_COUNTERS_PER_THREAD = 128;
 	static constexpr int MAX_COUNTERS_PER_THREAD_MASK = MAX_COUNTERS_PER_THREAD - 1;
 
-	//static constexpr int MAX_PAUSED_JOBS_PER_THREAD = 128;
-
 	// Ring-buffer for allocating jobs per thread
 	static thread_local std::array<Job, MAX_JOBS_PER_THREAD>& m_jobs;
 	static std::vector<std::array<bool, MAX_JOBS_PER_THREAD>> m_jobInUse;	// per-thread, accessed from other threads
@@ -111,9 +159,6 @@ private:
 	static thread_local std::array<JobCounter, MAX_COUNTERS_PER_THREAD>& m_counters;
 	static std::vector<std::array<bool, MAX_COUNTERS_PER_THREAD>> m_counterInUse;	// per-thread, accessed from other threads
 	static thread_local uint32_t m_counterBufferHead;
-
-	// List of currently paused jobs
-	//static std::vector<JobStack> m_pausedJobs;
 
 	// Job queue per thread
 	static std::vector<JobStack> m_jobQueues;
@@ -136,4 +181,14 @@ private:
 	static char m_diskJobInProgress;
 	static constexpr char CHAR_TRUE = 1;
 	static constexpr char CHAR_FALSE = 0;
+
+	// DEBUG THINGS
+#if JOBS_COLLECT_METRICS
+	// Number of jobs each thread has executed
+	static std::vector<int> m_numJobsExecutedPerThread;
+	// Number of steals each thread has performed
+	static std::vector<int> m_numStolenJobsExecutedPerThread;
+	// Number of own-thread jobs each thread has performed
+	static std::vector<int> m_numOwnJobsExecutedPerThread;
+#endif
 };

@@ -7,9 +7,14 @@ typedef void(*JobFunc)(void*);
 enum JobFlag
 {
 	JOBFLAG_NONE = 0,
+	/** Job needs to run on the main thread */
 	JOBFLAG_MAINTHREAD = 1 << 0,
+	/** Job requires disk read/write access */
 	JOBFLAG_DISKACCESS = 1 << 1,
+	/** Job must complete before the job that created it is considered finished */
 	JOBFLAG_ISCHILD = 1 << 2,
+	/** For debugging, use this to mark jobs */
+	JOBFLAG_DEBUG = 1 << 7,
 };
 
 /** Counter for handling job dependencies */

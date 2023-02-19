@@ -44,7 +44,7 @@ void OpenGLRenderRunner::Init()
 	std::cout << "OpenGL: " << glGetString(GL_VERSION) << std::endl;
 }
 
-void OpenGLRenderRunner::RunJobInner(JobCounterPtr& jobCounter)
+void OpenGLRenderRunner::RunJobInner()
 {
 	ClientFrameData& frameData = *m_frameData->GetData();
 	// Debug: Make sure frames are running in the correct order
@@ -57,7 +57,7 @@ void OpenGLRenderRunner::RunJobInner(JobCounterPtr& jobCounter)
 	}
 
 	// Make sure rendering all happens on the main thread
-	Jobs::CreateJobAndCount(OpenGLRenderRunner::MainThreadTasks, this, JOBFLAG_MAINTHREAD, jobCounter);
+	Jobs::CreateJob(OpenGLRenderRunner::MainThreadTasks, this, JOBFLAG_MAINTHREAD | JOBFLAG_ISCHILD);
 
 	m_framesCompleted++;
 }
@@ -80,9 +80,9 @@ DEFINE_CLASS_JOB(OpenGLRenderRunner, MainThreadTasks)
 	for (auto& model : frameData.m_modelsToRender)
 	{
 		// If this model isn't uploaded yet, upload it
-		if (model.m_model.GetLoadState() == LoadState::LOADED)
+		if (model.m_model != nullptr && model.m_model->GetLoadState() == LoadState::LOADED)
 		{
-			model.m_model.Upload();
+			model.m_model->Upload();
 		}
 	}
 
@@ -92,19 +92,19 @@ DEFINE_CLASS_JOB(OpenGLRenderRunner, MainThreadTasks)
 
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// Eventually, get the shader from the model's material
+	glUseProgram(m_solidColourShader.GetProgramID());
+	m_solidColourShader.SetGlUniformMat4("viewMat", frameData.m_camera.m_viewMatrix);
+	m_solidColourShader.SetGlUniformMat4("projMat", frameData.m_camera.m_projMatrix);
 
 	for (auto& model : frameData.m_modelsToRender)
 	{
 		// If this model is uploaded, and the shader it asks for is uploaded, render it
-		if (model.m_model.GetLoadState() == LoadState::UPLOADED && m_solidColourShader.GetState() == ShaderState::READY)
+		if (model.m_model != nullptr && model.m_model->GetLoadState() == LoadState::UPLOADED && m_solidColourShader.GetState() == ShaderState::READY)
 		{
-			// Eventually, get the shader from the model's material
-			glUseProgram(m_solidColourShader.GetProgramID());
-
-			model.m_model.PrepareForRendering();
-			glm::mat4 modelViewProj = frameData.m_camera.m_projMatrix * frameData.m_camera.m_viewMatrix * model.m_transRotScale;
-			m_solidColourShader.SetGlUniformMat4("mvp", modelViewProj);
-			glDrawArrays(GL_TRIANGLES, 0, model.m_model.GetVertexCount());
+			model.m_model->PrepareForRendering();
+			m_solidColourShader.SetGlUniformMat4("modelMat", model.m_transRotScale);
+			glDrawArrays(GL_TRIANGLES, 0, model.m_model->GetVertexCount());
 		}
 	}
 

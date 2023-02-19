@@ -3,6 +3,6 @@
 
 struct ModelToRender
 {
-	ModelAsset& m_model;
+	ModelAsset* m_model;
 	glm::mat4 m_transRotScale;
 };

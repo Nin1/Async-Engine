@@ -30,8 +30,11 @@ public:
 	void QueueFrame(FrameData<DATA>& frame);
 
 protected:
-	/** Abstract method for executing whatever the stage wants. Any jobs that need to complete before this frame can finish must add to jobCounter. */
-	virtual void RunJobInner(JobCounterPtr& jobCounter) = 0;
+	/**
+	 * Abstract method for executing whatever the stage wants.
+	 * NOTE: jobs that need to complete before this frame can finish MUST run with JOBFLAG_ISCHILD
+	 */
+	virtual void RunJobInner() = 0;
 
 private:
 	enum class StateEnum : char
@@ -109,8 +112,6 @@ protected:
 
 	/** Quick accessor for the currently active frame data */
 	FrameData<DATA>* m_frameData = nullptr;
-	/** Job counter for the running frame - Only valid while a frame is processing */
-	JobCounterPtr m_jobCounter;
 
 private:
 	/** Lock-free concurrent queue of frames to run */

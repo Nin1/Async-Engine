@@ -10,7 +10,7 @@ public:
 	GameLogicRunner() : FrameStageRunner("Game Logic") { }
 	virtual void Init() override;
 protected:
-	virtual void RunJobInner(JobCounterPtr& jobCounter) override;
+	virtual void RunJobInner() override;
 
 private:
 	/********
@@ -20,6 +20,9 @@ private:
 	Camera m_camera;
 
 	ModelAsset m_testModel;
-	Transform m_testModelTransform;
+	static constexpr int NUM_CUBES = 10000;
+	static constexpr int CUBE_PARALLEL_CHUNK_SIZE = 500;
+	static constexpr int CUBE_RANDOM_POS_RANGE = 50;
+	std::array<Transform, NUM_CUBES> m_testModelTransforms;
 };
 

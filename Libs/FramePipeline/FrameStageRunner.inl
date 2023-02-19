@@ -88,15 +88,15 @@ void FrameStageRunner<DATA>::StartFrame(FrameData<DATA>& frame)
 	m_frameData->m_active = true;
 
 	// Create the start and end jobs for this frame
-	m_jobCounter = Jobs::GetNewJobCounter();
-	Jobs::CreateJobAndCount(StartFrameJob, this, JOBFLAG_NONE, m_jobCounter);
-	Jobs::CreateJobWithDependency(FinishFrameJob, this, JOBFLAG_NONE, m_jobCounter);
+	JobCounterPtr jobCounter = Jobs::GetNewJobCounter();
+	Jobs::CreateJobAndCount(StartFrameJob, this, JOBFLAG_NONE, jobCounter);
+	Jobs::CreateJobWithDependency(FinishFrameJob, this, JOBFLAG_NONE, jobCounter);
 }
 
 template<typename DATA>
 DEFINE_TEMPLATE_CLASS_JOB(DATA, FrameStageRunner, StartFrameJob)
 {
-	RunJobInner(m_jobCounter);
+	RunJobInner();
 }
 
 template<typename DATA>

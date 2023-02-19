@@ -40,8 +40,6 @@ void ModelAsset::Upload()
 	glEnableVertexAttribArray(0);
 	m_vertexCount = (uint32_t)m_mesh->m_vertices.size();
 	std::cout << "Uploaded model: " << m_filename << std::endl;
-	// We don't need the mesh any more - If we're the only thing using it, this will free its memory
-	m_mesh.reset();
 }
 
 void ModelAsset::PrepareForRendering() const

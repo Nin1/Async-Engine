@@ -3,7 +3,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
-void FrameStartRunner::RunJobInner(JobCounterPtr& jobCounter)
+void FrameStartRunner::RunJobInner()
 {
 	// Reset this frameData
 	ClientFrameData& frameData = *m_frameData->GetData();
@@ -11,7 +11,7 @@ void FrameStartRunner::RunJobInner(JobCounterPtr& jobCounter)
 	m_frameCount++;
 
 	// glfw events must be run on the main thread, so do that here
-	Jobs::CreateJobAndCount(FrameStartRunner::MainThreadTasks, this, JOBFLAG_MAINTHREAD, jobCounter);
+	Jobs::CreateJob(FrameStartRunner::MainThreadTasks, this, JOBFLAG_MAINTHREAD | JOBFLAG_ISCHILD);
 }
 
 DEFINE_CLASS_JOB(FrameStartRunner, MainThreadTasks)
