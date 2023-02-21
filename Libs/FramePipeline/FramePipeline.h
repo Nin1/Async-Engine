@@ -6,7 +6,7 @@ template<typename DATA>
 struct FrameData;
 
 /**
- * The pipeline through which a frame ends up drawn to the screen.
+ * The pipeline through which a frame ends up drawn to the screen. Multiple frames can be executed in parallel.
  * Create by passing a vector of stages in order into Init().
  * Call Start() to begin pushing frames through the pipeline. When they complete, they will return to the start of the pipeline.
  *

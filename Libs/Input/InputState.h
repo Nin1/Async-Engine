@@ -37,10 +37,14 @@ public:
 	bool GetMouseHeld(int button) const { return m_mouseButtonHeld[button]; }
 	bool GetMouseUp(int button) const { return m_mouseButtonUp[button]; };
 
+	/** @return the number of mouse buttons */
+	size_t GetNumMouseButtons() const { return m_mouseButtonDown.size(); }
 	/** @return the current mouse position */
 	const glm::vec2& GetMousePos() const { return m_mousePos; }
 	/** @return the difference in mouse position between this frame and the last */
 	const glm::vec2& GetLastMouseOffset() const { return m_lastMouseOffset; }
+	/** @return true if the mouse moved this frame */
+	bool DidMouseMove() const { return m_lastMouseOffset.x != 0 || m_lastMouseOffset.y != 0; }
 
 private:
 	/** Key states for polling */

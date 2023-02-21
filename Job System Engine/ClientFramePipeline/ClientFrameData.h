@@ -1,6 +1,7 @@
 #pragma once
 #include <Graphics/Camera/CameraData.h>
 #include <Graphics/Model/ModelToRender.h>
+#include <ImGuiWrapper.h>
 #include <Input/Input.h>
 
 enum class FrameStage
@@ -25,6 +26,7 @@ public:
 		m_stage = FrameStage::FRAME_START;
 		m_frameNumber = frameNumber;
 		m_modelsToRender.clear();
+		m_imgui.Clear();
 	}
 
 	/** The stage that this frame is in */
@@ -36,11 +38,15 @@ public:
 	/** The input handler for this application. */
 	Input& m_inputHandler;
 
-
+	/** The time since the last frame started (in seconds) */
+	double m_deltaTime = 0.0;
 	/** The input state at the start of this frame. Valid after FRAME_START. */
 	InputState m_input;
 	/** Matrices and other data about the camera. Valid after GAME_LOGIC. */
 	CameraData m_camera;
 	/** List of models to render. Valid after GAME_LOGIC. */
 	std::vector<ModelToRender> m_modelsToRender;
+
+	/** Wrapper for ImGui calls */
+	ImGuiFrameWrapper m_imgui;
 };

@@ -5,6 +5,9 @@
 #include "ClientFramePipeline/FrameStartRunner.h"
 #include <GLFW/glfw3.h>
 #include <Jobs/Jobs.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 // PIPELINE:
 // 1. Gameplay logic
@@ -27,13 +30,24 @@ DEFINE_CLASS_JOB(GameApp, Init)
 	std::cout << "Initialising window" << std::endl;
 
 	// Init GLFW and window
-	glfwInit();
-	//if (renderAPI == RenderAPI::VULKAN)
-	//{
-	//	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	//	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-	//}
+	if (glfwInit() == GLFW_FALSE)
+	{
+		Jobs::Stop();
+		std::cout << "Error initialising GLFW" << std::endl;
+		return;
+	}
+	// GL 3.0 + GLSL 130
+	const char* glsl_version = "#version 130";
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+
 	m_window = glfwCreateWindow(800, 600, "Engine", nullptr, nullptr);
+	if (m_window == nullptr)
+	{
+		Jobs::Stop();
+		std::cout << "Error creating window" << std::endl;
+		return;
+	}
 	glfwMakeContextCurrent(m_window);
 	glfwSwapInterval(0); //Disables vsync
 	std::cout << "Window initialised" << std::endl;
@@ -55,6 +69,16 @@ DEFINE_CLASS_JOB(GameApp, Init)
 			GameApp* thisApp = (GameApp*)glfwGetWindowUserPointer(window);
 			thisApp->InputMousePosListener(window, xpos, ypos);
 		});
+
+	// Init ImGui
+	// Note: ImGui is not thread-safe, and as it has a single global state only one frame and one thread should do anything with it at one time.
+	// To do this, we will need to use a wrapper within ClientFrameData to collect imgui calls throughout a frame.
+	// At the end of the frame, we will then forward all inputs from our input state to it, execute the collected calls, and render it all in the Render stage.
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForOpenGL(m_window, false);
+	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	// Initialise frame pipeline
 	constexpr int NUM_SIMULTANEOUS_FRAMES = 4;

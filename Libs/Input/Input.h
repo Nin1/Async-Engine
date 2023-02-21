@@ -23,7 +23,7 @@ public:
 	/** Set the new position of the mouse (Does not update the mouse offset) */
 	void WarpMousePos(int x, int y);
 
-	/** Copies the input state into a struct and returns it */
+	/** Copies the input state into a struct and returns it (TODO: Event queue) */
 	InputState ExtractInputState();
 
 	static bool m_isWarping;
