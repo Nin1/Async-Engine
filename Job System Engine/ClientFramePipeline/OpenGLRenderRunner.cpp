@@ -118,6 +118,7 @@ DEFINE_CLASS_JOB(OpenGLRenderRunner, MainThreadTasks)
 		m_solidColourShader.Compile();
 	}
 
+	/*
 	// Upload any models that we need to
 	for (auto& model : frameData.m_modelsToRender)
 	{
@@ -127,6 +128,7 @@ DEFINE_CLASS_JOB(OpenGLRenderRunner, MainThreadTasks)
 			model.m_model->Upload();
 		}
 	}
+	*/
 
 	/*************
 	*   RENDER   *
@@ -151,6 +153,7 @@ DEFINE_CLASS_JOB(OpenGLRenderRunner, MainThreadTasks)
 				m_solidColourShader.SetGlUniformMat4("modelMat", model.m_transRotScale);
 				glDrawArrays(GL_TRIANGLES, 0, model.m_model->GetVertexCount());
 			}
+			break;
 		}
 	}
 

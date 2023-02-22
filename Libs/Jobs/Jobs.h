@@ -7,7 +7,7 @@
 #include <functional>
 
 // Debug to enable per-thread metric collection about jobs
-#define JOBS_COLLECT_METRICS 0
+#define JOBS_COLLECT_METRICS 1
 
 /*
 struct PausedJob
@@ -138,7 +138,7 @@ private:
 
 private:
 	// Maximum number of jobs per-thread. Must be a power-of-two.
-	static constexpr int MAX_JOBS_PER_THREAD = 2048;
+	static constexpr int MAX_JOBS_PER_THREAD = 4096;
 	static constexpr int MAX_JOBS_PER_THREAD_MASK = MAX_JOBS_PER_THREAD - 1;
 
 	// Maximum number of counters per-thread. Must be a power-of-two.
@@ -147,7 +147,7 @@ private:
 
 	// Ring-buffer for allocating jobs per thread
 	static thread_local std::array<Job, MAX_JOBS_PER_THREAD>& m_jobs;
-	static std::vector<std::array<bool, MAX_JOBS_PER_THREAD>> m_jobInUse;	// per-thread, accessed from other threads
+	static std::vector<std::array<std::unique_ptr<std::atomic<bool>>, MAX_JOBS_PER_THREAD>> m_jobInUse;	// per-thread, accessed from other threads
 	static thread_local uint32_t m_jobBufferHead;
 
 	// Heap-allocated large buffers
@@ -157,7 +157,7 @@ private:
 
 	// Ring-buffer for allocating counters
 	static thread_local std::array<JobCounter, MAX_COUNTERS_PER_THREAD>& m_counters;
-	static std::vector<std::array<bool, MAX_COUNTERS_PER_THREAD>> m_counterInUse;	// per-thread, accessed from other threads
+	static std::vector<std::array<std::unique_ptr<std::atomic<bool>>, MAX_COUNTERS_PER_THREAD>> m_counterInUse;	// per-thread, accessed from other threads
 	static thread_local uint32_t m_counterBufferHead;
 
 	// Job queue per thread
@@ -184,11 +184,55 @@ private:
 
 	// DEBUG THINGS
 #if JOBS_COLLECT_METRICS
-	// Number of jobs each thread has executed
-	static std::vector<int> m_numJobsExecutedPerThread;
+public:
+	static size_t GetNumThreads() { return m_jobQueues.size(); }
+	static size_t GetMainThreadIndex() { return m_mainThreadIndex; }
+	static int GetNumStolenJobs(size_t threadIndex) { return m_numStolenJobsExecutedPerThread[threadIndex]->load(); }
+	static int GetNumOwnJobs(size_t threadIndex) { return m_numOwnJobsExecutedPerThread[threadIndex]->load(); }
+	static int GetNumExecutedLoops(size_t threadIndex) { return m_numExecutedLoopsPerThread[threadIndex]->load(); }
+	static int GetNumStarvedLoops(size_t threadIndex) { return m_numStarvedLoopsPerThread[threadIndex]->load(); }
+	static int GetNumJobsCreated(size_t threadIndex) { return m_numJobsCreatedPerThread[threadIndex]->load(); }
+	static int GetNumMainThreadJobsCreated(size_t threadIndex) { return m_numMainThreadJobsCreatedPerThread[threadIndex]->load(); }
+	static long long GetTimeInJobsNS(size_t threadIndex) { return m_timeInJobsPerThreadNS[threadIndex]->load(); }
+	static long long GetTimeNotInJobsNS(size_t threadIndex) { return m_timeNotInJobsPerThreadNS[threadIndex]->load(); }
+	static const std::chrono::time_point<std::chrono::high_resolution_clock>& GetLastMetricResetTime() { return m_lastMetricResetTime; }
+	static void ResetMetrics()
+	{
+		for (int i = 0; i < m_numStolenJobsExecutedPerThread.size(); i++)
+		{
+			m_numStolenJobsExecutedPerThread[i]->store(0);
+			m_numOwnJobsExecutedPerThread[i]->store(0);
+			m_numExecutedLoopsPerThread[i]->store(0);
+			m_numStarvedLoopsPerThread[i]->store(0);
+			m_numJobsCreatedPerThread[i]->store(0);
+			m_numMainThreadJobsCreatedPerThread[i]->store(0);
+			m_timeInJobsPerThreadNS[i]->store(0);
+			m_timeNotInJobsPerThreadNS[i]->store(0);
+		}
+		m_lastMetricResetTime = std::chrono::high_resolution_clock::now();
+	}
+
+private:
+	static size_t m_mainThreadIndex;
 	// Number of steals each thread has performed
-	static std::vector<int> m_numStolenJobsExecutedPerThread;
+	static std::vector<std::unique_ptr<std::atomic<int>>> m_numStolenJobsExecutedPerThread;
 	// Number of own-thread jobs each thread has performed
-	static std::vector<int> m_numOwnJobsExecutedPerThread;
+	static std::vector<std::unique_ptr<std::atomic<int>>> m_numOwnJobsExecutedPerThread;
+	// Per thread, how many loops executed a job
+	static std::vector<std::unique_ptr<std::atomic<int>>> m_numExecutedLoopsPerThread;
+	// Per thread, how many loops didn't execute a job
+	static std::vector<std::unique_ptr<std::atomic<int>>> m_numStarvedLoopsPerThread;
+	// Per thread, how many jobs have been created
+	static std::vector<std::unique_ptr<std::atomic<int>>> m_numJobsCreatedPerThread;
+	// Per thread, how many main-thread jobs have been created
+	static std::vector<std::unique_ptr<std::atomic<int>>> m_numMainThreadJobsCreatedPerThread;
+	// Per thread, time spent in jobs
+	static std::vector<std::unique_ptr<std::atomic<long long>>> m_timeInJobsPerThreadNS;
+	// Per thread, time spent not in jobs
+	static std::vector<std::unique_ptr<std::atomic<long long>>> m_timeNotInJobsPerThreadNS;
+	// Per thread, the time at which the last job finished
+	static std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> m_lastJobFinishTimePerThreadNS;
+	// The time at which metrics were last reset
+	static std::chrono::time_point<std::chrono::high_resolution_clock> m_lastMetricResetTime;
 #endif
 };

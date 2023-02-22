@@ -38,9 +38,30 @@ public:
 	void Queue(FUNC func, ARGS... args)
 	{
 		m_calls.push_back([func, args...]()
-		{
-			(func)(args...);
-		});
+			{
+				(func)(args...);
+			});
+	}
+
+	/** Queue a complex call to ImGui functions */
+	void QueueComplex(std::function<void()> onCalled)
+	{
+		m_calls.push_back([=]()
+			{
+				onCalled();
+			});
+	}
+	
+	/** Queues a button with a label and callback */
+	void QueueButton(const char* label, std::function<void()> onClicked)
+	{
+		m_calls.push_back([=]()
+			{
+				if (ImGui::Button(label))
+				{
+					onClicked();
+				}
+			});
 	}
 
 	void Clear()

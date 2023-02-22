@@ -17,10 +17,10 @@ thread_local std::array<Job, Jobs::MAX_JOBS_PER_THREAD>& Jobs::m_jobs = *m_jobsU
 thread_local std::array<JobPtr, Jobs::MAX_JOBS_PER_THREAD>& Jobs::m_deferredJobs = *m_deferredJobsUniquePtr;
 thread_local std::array<JobCounter, Jobs::MAX_COUNTERS_PER_THREAD>& Jobs::m_counters = *m_countersUniquePtr;
 
-std::vector<std::array<bool, Jobs::MAX_JOBS_PER_THREAD>> Jobs::m_jobInUse;	// per-thread, accessed from other threads
+std::vector<std::array<std::unique_ptr<std::atomic<bool>>, Jobs::MAX_JOBS_PER_THREAD>> Jobs::m_jobInUse;	// per-thread, accessed from other threads
 thread_local uint32_t Jobs::m_jobBufferHead = 0;
 
-std::vector<std::array<bool, Jobs::MAX_COUNTERS_PER_THREAD>> Jobs::m_counterInUse;	// per-thread, accessed from other threads
+std::vector<std::array<std::unique_ptr<std::atomic<bool>>, Jobs::MAX_COUNTERS_PER_THREAD>> Jobs::m_counterInUse;	// per-thread, accessed from other threads
 thread_local uint32_t Jobs::m_counterBufferHead = 0;
 // Job queue per thread
 std::vector<JobStack> Jobs::m_jobQueues;
@@ -37,9 +37,17 @@ Job Jobs::m_nullJob;
 char Jobs::m_diskJobInProgress = false;
 thread_local bool Jobs::m_thisThreadCanReadDisk;
 #if JOBS_COLLECT_METRICS
-std::vector<int> Jobs::m_numJobsExecutedPerThread;
-std::vector<int> Jobs::m_numStolenJobsExecutedPerThread;
-std::vector<int> Jobs::m_numOwnJobsExecutedPerThread;
+size_t Jobs::m_mainThreadIndex;
+std::vector<std::unique_ptr<std::atomic<int>>> Jobs::m_numStolenJobsExecutedPerThread;
+std::vector<std::unique_ptr<std::atomic<int>>> Jobs::m_numOwnJobsExecutedPerThread;
+std::vector<std::unique_ptr<std::atomic<int>>> Jobs::m_numExecutedLoopsPerThread;
+std::vector<std::unique_ptr<std::atomic<int>>> Jobs::m_numStarvedLoopsPerThread;
+std::vector<std::unique_ptr<std::atomic<int>>> Jobs::m_numJobsCreatedPerThread;
+std::vector<std::unique_ptr<std::atomic<int>>> Jobs::m_numMainThreadJobsCreatedPerThread;
+std::vector<std::unique_ptr<std::atomic<long long>>> Jobs::m_timeInJobsPerThreadNS;
+std::vector<std::unique_ptr<std::atomic<long long>>> Jobs::m_timeNotInJobsPerThreadNS;
+std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> Jobs::m_lastJobFinishTimePerThreadNS;
+std::chrono::time_point<std::chrono::high_resolution_clock> Jobs::m_lastMetricResetTime;
 #endif
 
 Jobs::Jobs(JobFunc mainJob, void* mainJobData)
@@ -61,10 +69,42 @@ void Jobs::Init(int numThreads, JobFunc mainJob, void* mainJobData)
 	m_mainThreadJobQueues.reserve(numThreads);
 	m_threads.reserve(numThreads);
 
+	for (int thread = 0; thread < numThreads; thread++)
+	{
+		for (int i = 0; i < MAX_JOBS_PER_THREAD; i++)
+		{
+			m_jobInUse[thread][i] = std::make_unique<std::atomic<bool>>(false);
+		}
+		for (int i = 0; i < MAX_COUNTERS_PER_THREAD; i++)
+		{
+			m_counterInUse[thread][i] = std::make_unique<std::atomic<bool>>(false);
+		}
+	}
+
 #if JOBS_COLLECT_METRICS
-	m_numJobsExecutedPerThread.resize(numThreads);
+	m_mainThreadIndex = m_maxThreadIndex;
+	m_lastMetricResetTime = std::chrono::high_resolution_clock::now();
 	m_numStolenJobsExecutedPerThread.resize(numThreads);
 	m_numOwnJobsExecutedPerThread.resize(numThreads);
+	m_numExecutedLoopsPerThread.resize(numThreads);
+	m_numStarvedLoopsPerThread.resize(numThreads);
+	m_numJobsCreatedPerThread.resize(numThreads);
+	m_numMainThreadJobsCreatedPerThread.resize(numThreads);
+	m_timeInJobsPerThreadNS.resize(numThreads);
+	m_timeNotInJobsPerThreadNS.resize(numThreads);
+	m_lastJobFinishTimePerThreadNS.resize(numThreads);
+	for (int i = 0; i < numThreads; i++)
+	{
+		m_numStolenJobsExecutedPerThread[i] = std::make_unique<std::atomic<int>>(0);
+		m_numOwnJobsExecutedPerThread[i] = std::make_unique<std::atomic<int>>(0);
+		m_numExecutedLoopsPerThread[i] = std::make_unique<std::atomic<int>>(0);
+		m_numStarvedLoopsPerThread[i] = std::make_unique<std::atomic<int>>(0);
+		m_numJobsCreatedPerThread[i] = std::make_unique<std::atomic<int>>(0);
+		m_numMainThreadJobsCreatedPerThread[i] = std::make_unique<std::atomic<int>>(0);
+		m_timeInJobsPerThreadNS[i] = std::make_unique<std::atomic<long long>>(0);
+		m_timeNotInJobsPerThreadNS[i] = std::make_unique<std::atomic<long long>>(0);
+		m_lastJobFinishTimePerThreadNS[i] = std::chrono::high_resolution_clock::now();
+	}
 #endif
 
 	// Allocate job queues
@@ -148,8 +188,14 @@ void Jobs::ExecuteOuter(JobPtr&& jobPtr)
 	{
 		// Didn't get a job - yield for a bit
 		_YIELD_PROCESSOR();
+	#if JOBS_COLLECT_METRICS
+		(*m_numStarvedLoopsPerThread[m_thisThreadIndex])++;
+	#endif
 		return;
 	}
+#if JOBS_COLLECT_METRICS
+	(*m_numExecutedLoopsPerThread[m_thisThreadIndex])++;
+#endif
 
 	Job& job = jobPtr.Get();
 	Execute(job);
@@ -204,13 +250,25 @@ void Jobs::Execute(Job& job)
 	{
 		Job* currentJob = m_activeJob;
 		m_activeJob = &job;
+
+#if JOBS_COLLECT_METRICS
+		auto jobStartTimeNS = std::chrono::high_resolution_clock::now();
+		auto timeSinceLastJob = jobStartTimeNS - m_lastJobFinishTimePerThreadNS[m_thisThreadIndex];
+		m_timeNotInJobsPerThreadNS[m_thisThreadIndex]->fetch_add(timeSinceLastJob.count());
+#endif
+
+		// Execute job!
 		job.m_func(job.m_data);
+
+#if JOBS_COLLECT_METRICS
+		m_lastJobFinishTimePerThreadNS[m_thisThreadIndex] = std::chrono::high_resolution_clock::now();
+		auto timeSinceJobStart = m_lastJobFinishTimePerThreadNS[m_thisThreadIndex] - jobStartTimeNS;
+		m_timeInJobsPerThreadNS[m_thisThreadIndex]->fetch_add(timeSinceJobStart.count());
+#endif
+
 		// Set func to nullptr so we can't run it again (the job will persist if it has children that have not yet finished)
 		job.m_func = nullptr;
 		m_activeJob = currentJob;
-	#if JOBS_COLLECT_METRICS
-		m_numJobsExecutedPerThread[m_thisThreadIndex]++;
-	#endif
 	}
 }
 
@@ -219,10 +277,16 @@ void Jobs::PushJob(JobPtr&& jobPtr, bool mainThread)
 	if (mainThread)
 	{
 		m_mainThreadJobQueues[m_thisThreadIndex].Push(std::move(jobPtr));
+	#if JOBS_COLLECT_METRICS
+		(*m_numMainThreadJobsCreatedPerThread[m_thisThreadIndex])++;
+	#endif
 	}
 	else
 	{
 		m_jobQueues[m_thisThreadIndex].Push(std::move(jobPtr));
+	#if JOBS_COLLECT_METRICS
+		(*m_numJobsCreatedPerThread[m_thisThreadIndex])++;
+	#endif
 	}
 }
 
@@ -271,18 +335,24 @@ JobPtr Jobs::AllocateJob(JobFunc func, void* data, uint8_t flags)
 {
 	// Search the job ring-buffer to find the first available job
 	m_jobBufferHead = (m_jobBufferHead + 1) & MAX_JOBS_PER_THREAD_MASK;
-	//uint32_t start = m_jobBufferHead;
-	while (m_jobInUse[m_thisThreadIndex][m_jobBufferHead] == true)
+	uint32_t start = m_jobBufferHead;
+	uint8_t numFails = 0;
+	while (m_jobInUse[m_thisThreadIndex][m_jobBufferHead]->load() == true)
 	{
 		m_jobBufferHead = (m_jobBufferHead + 1) & MAX_JOBS_PER_THREAD_MASK;
-		//if (m_jobBufferHead == start)
-		//{
-		//	// Job buffer is full - wait a bit and try again
-		//	//std::cout << "No space for new job - Waiting" << std::endl;
-		//	_YIELD_PROCESSOR();
-		//}
+		if (m_jobBufferHead == start)
+		{
+			// Job buffer is full
+			if (++numFails > 200)
+			{
+				// Can't find space for jobs - application is creating too many
+				_ASSERT(false);
+			}
+			// Wait for buffer to free up
+			_YIELD_PROCESSOR();
+		}
 	}
-	m_jobInUse[m_thisThreadIndex][m_jobBufferHead] = true;
+	m_jobInUse[m_thisThreadIndex][m_jobBufferHead]->store(true);
 	JobPtr job(m_jobs[m_jobBufferHead], m_jobBufferHead, m_thisThreadIndex);
 
 	// Set up new job
@@ -308,8 +378,8 @@ void Jobs::DeallocateJob(JobPtr& job)
 	job.m_job->m_decCounter = JobCounterPtr();
 	job.m_job->m_waitCounter = JobCounterPtr();
 	job.m_job->m_parent = nullptr;
-	_ASSERT(m_jobInUse[job.m_parentThread][index] == true);
-	m_jobInUse[job.m_parentThread][index] = false;
+	_ASSERT(m_jobInUse[job.m_parentThread][index]->load() == true);
+	m_jobInUse[job.m_parentThread][index]->store(false);
 }
 
 JobPtr Jobs::GetJob()
@@ -377,7 +447,7 @@ JobPtr Jobs::GetJobFromThisThread(std::vector<JobStack>& queues, bool popOnly)
 #if JOBS_COLLECT_METRICS
 	if (job.IsValid())
 	{
-		m_numOwnJobsExecutedPerThread[m_thisThreadIndex]++;
+		(*m_numOwnJobsExecutedPerThread[m_thisThreadIndex])++;
 	}
 #endif
 	return job;
@@ -410,7 +480,7 @@ JobPtr Jobs::GetJobFromOtherThread(int threadIndex, std::vector<JobStack>& queue
 #if JOBS_COLLECT_METRICS
 	if (job.IsValid())
 	{
-		m_numStolenJobsExecutedPerThread[m_thisThreadIndex]++;
+		(*m_numStolenJobsExecutedPerThread[m_thisThreadIndex])++;
 	}
 #endif
 	return job;
@@ -446,22 +516,28 @@ JobCounterPtr Jobs::AllocateCounter()
 	// Search the job ring-buffer to find the first available job
 	m_counterBufferHead = (m_counterBufferHead + 1) & MAX_COUNTERS_PER_THREAD_MASK;
 	uint32_t start = m_counterBufferHead;
-	while (m_counterInUse[m_thisThreadIndex][m_counterBufferHead] == true)
+	uint8_t numFails = 0;
+	while (m_counterInUse[m_thisThreadIndex][m_counterBufferHead]->load() == true)
 	{
 		m_counterBufferHead = (m_counterBufferHead + 1) & MAX_COUNTERS_PER_THREAD_MASK;
 		if (m_counterBufferHead == start)
 		{
-			// ERROR: Counter buffer is full
-			_ASSERT(false);
-			return JobCounterPtr();
+			// Job buffer is full
+			if (++numFails > 200)
+			{
+				// Can't find space for jobs - application is creating too many
+				_ASSERT(false);
+			}
+			// Wait for buffer to free up
+			_YIELD_PROCESSOR();
 		}
 	}
 	// Reset the counter
 	m_counters[m_counterBufferHead].m_numJobs = 0;
 	m_counters[m_counterBufferHead].m_numDependants = 0;
 	// Assert to soft-check that this is thread-safe
-	_ASSERT(m_counterInUse[m_thisThreadIndex][m_counterBufferHead] == false);
-	m_counterInUse[m_thisThreadIndex][m_counterBufferHead] = true;
+	_ASSERT(m_counterInUse[m_thisThreadIndex][m_counterBufferHead]->load() == false);
+	m_counterInUse[m_thisThreadIndex][m_counterBufferHead]->store(true);
 	return JobCounterPtr(m_counters[m_counterBufferHead], m_counterBufferHead, m_thisThreadIndex);
 }
 
@@ -471,6 +547,6 @@ void Jobs::DeallocateCounter(const JobCounterPtr& counter)
 	// This should be safe - No other thread will be doing anything with this
 	// Assert that the counters have completed before deallocating.
 	_ASSERT(counter.m_counter->m_numDependants == 0 && counter.m_counter->m_numJobs == 0);
-	_ASSERT(m_counterInUse[counter.m_parentThread][counter.m_index] == true);
-	m_counterInUse[counter.m_parentThread][counter.m_index] = false;
+	_ASSERT(m_counterInUse[counter.m_parentThread][counter.m_index]->load() == true);
+	m_counterInUse[counter.m_parentThread][counter.m_index]->store(false);
 }
